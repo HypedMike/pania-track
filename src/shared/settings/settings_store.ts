@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { detectLanguage, type Language } from "../i18n/translations";
 
 export type ThemeSetting = "system" | "light" | "dark";
 
@@ -9,9 +10,11 @@ export const DEFAULT_RECORD_INTERVAL_S = 5;
 
 interface SettingsState {
   theme: ThemeSetting;
+  language: Language;
   /** Seconds between points added to a track while recording. */
   recordIntervalS: number;
   setTheme: (theme: ThemeSetting) => void;
+  setLanguage: (language: Language) => void;
   setRecordIntervalS: (seconds: number) => void;
 }
 
@@ -22,8 +25,10 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       theme: "system",
+      language: detectLanguage(),
       recordIntervalS: DEFAULT_RECORD_INTERVAL_S,
       setTheme: (theme) => set({ theme }),
+      setLanguage: (language) => set({ language }),
       setRecordIntervalS: (recordIntervalS) => set({ recordIntervalS }),
     }),
     { name: SETTINGS_STORAGE_KEY, storage: createJSONStorage(() => localStorage) },

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { currentLocale, plural, useT } from "../../../shared/i18n/i18n";
 import { useNavigation } from "../../../shared/router/use_navigation";
 import { ROUTES } from "../../../shared/router/routes";
 import {
@@ -22,6 +23,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function RecordingView() {
+  const t = useT();
   const { goTo, goBack } = useNavigation();
   const { status, points, waypoints, startedAt, current, error, start, pause, resume, addWaypoint, elapsedMs } =
     useRecordingStore();
@@ -44,7 +46,7 @@ function RecordingView() {
   const elapsed = elapsedMs();
   const paused = status === "paused";
   const startedLabel = startedAt
-    ? new Date(startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+    ? new Date(startedAt).toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })
     : "…";
 
   async function finish() {
@@ -70,26 +72,26 @@ function RecordingView() {
         <button
           type="button"
           onClick={goBack}
-          aria-label="Back to trails (recording continues)"
+          aria-label={t("recording.backLabel")}
           className="pointer-events-auto flex h-10 items-center gap-2 rounded-full bg-surface px-3.5 text-sm font-semibold shadow-md"
         >
           <span
             className={`size-2.5 rounded-full ${paused ? "bg-muted" : "animate-pulse bg-danger"}`}
             aria-hidden="true"
           />
-          {status === "idle" ? "Starting…" : paused ? "Paused" : "Recording"}
+          {status === "idle" ? t("recording.starting") : paused ? t("recording.paused") : t("recording.recording")}
         </button>
         <div className="flex h-10 items-center gap-2 rounded-full bg-surface px-3.5 text-sm font-medium shadow-md">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
             <path d="M4 20v-3M10 20v-7M16 20V9M22 20V4" />
           </svg>
-          {current?.accuracy !== undefined ? `GPS ±${Math.round(current.accuracy)} m` : "GPS …"}
+          {current?.accuracy !== undefined ? t("recording.gpsAccuracy", { m: Math.round(current.accuracy) }) : t("recording.gpsWaiting")}
         </div>
       </div>
 
       <button
         type="button"
-        aria-label="Center map on my position"
+        aria-label={t("recording.centerMap")}
         onClick={() => {
           setFollow(true);
           setFollowKey((k) => k + 1);
@@ -106,28 +108,32 @@ function RecordingView() {
       <section className="absolute inset-x-0 bottom-0 z-[1000] flex h-[40%] min-h-[330px] flex-col gap-4 rounded-t-[28px] bg-surface px-5 pt-3 pb-7 shadow-[0_-4px_24px_rgba(22,32,27,0.10)]">
         <div className="h-1 w-10 self-center rounded-full bg-line-strong" aria-hidden="true" />
         <div className="flex flex-col gap-0.5">
-          <span className="text-[13px] text-muted">New trail · started {startedLabel}</span>
+          <span className="text-[13px] text-muted">{t("recording.newTrail", { time: startedLabel })}</span>
           <span className="font-display text-[52px] leading-[1.05] font-semibold tracking-tight tabular-nums">
             {formatClock(elapsed)}
           </span>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <Metric label="Distance" value={formatDistance(stats.distanceM)} />
-          <Metric label="Avg pace" value={formatPace(stats.distanceM, elapsed)} />
-          <Metric label="Elevation gain" value={formatElevation(stats.elevationGainM, true)} />
+          <Metric label={t("common.distance")} value={formatDistance(stats.distanceM)} />
+          <Metric label={t("recording.avgPace")} value={formatPace(stats.distanceM, elapsed)} />
+          <Metric label={t("common.elevationGain")} value={formatElevation(stats.elevationGainM, true)} />
         </div>
 
         <p className="rounded-xl bg-canvas px-3 py-2.5 text-[13px] text-ink-soft">
           {error
             ? error
-            : `${points.length} points · ${waypoints.length} ${waypoints.length === 1 ? "waypoint" : "waypoints"} · ${backgroundRecorder.supported ? "keeps recording with the screen off" : "keep this screen open"}`}
+            : t("recording.status", {
+                points: t("common.pointsCount", { n: points.length }),
+                waypoints: plural("common.waypoint", waypoints.length, t),
+                mode: backgroundRecorder.supported ? t("recording.screenOff") : t("recording.keepOpen"),
+              })}
         </p>
 
         <div className="mt-auto flex items-center gap-3">
           <button
             type="button"
-            aria-label="Add waypoint"
+            aria-label={t("recording.addWaypoint")}
             onClick={() => void addWaypoint()}
             disabled={status === "idle"}
             className="flex size-14 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface disabled:opacity-50"
@@ -146,7 +152,7 @@ function RecordingView() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               {paused ? <path d="M7 5l12 7-12 7z" /> : (<><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></>)}
             </svg>
-            {paused ? "Resume" : "Pause"}
+            {paused ? t("common.resume") : t("recording.pause")}
           </button>
           <button
             type="button"
@@ -157,7 +163,7 @@ function RecordingView() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <rect x="5" y="5" width="14" height="14" rx="2" />
             </svg>
-            Finish
+            {t("recording.finish")}
           </button>
         </div>
       </section>

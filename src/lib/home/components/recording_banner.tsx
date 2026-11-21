@@ -1,9 +1,12 @@
+import { useT } from "../../../shared/i18n/i18n";
+
 interface RecordingBannerProps {
   paused: boolean;
   onOpen: () => void;
 }
 
 function RecordingBanner({ paused, onOpen }: RecordingBannerProps) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -15,9 +18,9 @@ function RecordingBanner({ paused, onOpen }: RecordingBannerProps) {
           className="size-2.5 animate-pulse rounded-full bg-white"
           aria-hidden="true"
         />
-        {paused ? "Recording paused" : "Recording in progress"}
+        {paused ? t("banner.paused") : t("banner.inProgress")}
       </span>
-      <span>Open</span>
+      <span>{t("banner.open")}</span>
     </button>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { currentLocale, useT } from "../../../shared/i18n/i18n";
 import { useNavigation } from "../../../shared/router/use_navigation";
 import { ROUTES, trailDetailPath } from "../../../shared/router/routes";
 import { computeStats, formatClock, formatDistance, formatElevation } from "../../../shared/gps/trail_stats";
@@ -11,6 +12,7 @@ const FIELD =
   "rounded-xl border border-line-strong bg-surface px-3.5 text-base text-ink focus:border-2 focus:border-brand-fg focus:outline-none";
 
 function SaveRecordingView() {
+  const t = useT();
   const { goTo } = useNavigation();
   const { status, points, waypoints, startedAt, elapsedMs, resume, discard } = useRecordingStore();
   const createTrail = useTrailStore((state) => state.createTrail);
@@ -27,12 +29,12 @@ function SaveRecordingView() {
 
   if (status === "idle") return null;
 
-  const fmt = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const fmt = (ms: number) => new Date(ms).toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (points.length === 0) {
-      setError("No GPS points were recorded yet. Resume recording, or discard it.");
+      setError(t("save.noPoints"));
       return;
     }
     setSaving(true);
@@ -54,7 +56,7 @@ function SaveRecordingView() {
   }
 
   async function handleDiscard() {
-    if (!window.confirm("Discard this recording? The track will be lost.")) return;
+    if (!window.confirm(t("save.confirmDiscard"))) return;
     goTo(ROUTES.home, { replace: true });
     void discard();
   }
@@ -63,10 +65,10 @@ function SaveRecordingView() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 pt-7 pb-6">
       <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4">
         <header className="flex flex-col gap-1">
-          <h1 className="font-display text-[28px] font-bold">Save recording</h1>
+          <h1 className="font-display text-[28px] font-bold">{t("save.title")}</h1>
           {startedAt && (
             <p className="text-sm text-muted">
-              Today · {fmt(startedAt)} – {fmt(Date.now())}
+              {t("save.today", { from: fmt(startedAt), to: fmt(Date.now()) })}
             </p>
           )}
         </header>
@@ -78,31 +80,31 @@ function SaveRecordingView() {
         )}
 
         <div className="grid grid-cols-2 gap-2">
-          <StatTile label="Distance" value={formatDistance(stats.distanceM)} />
-          <StatTile label="Moving time" value={formatClock(elapsedMs()).replace(/^00:/, "")} />
-          <StatTile label="Elevation gain" value={formatElevation(stats.elevationGainM, true)} />
-          <StatTile label="Points" value={String(points.length)} />
+          <StatTile label={t("common.distance")} value={formatDistance(stats.distanceM)} />
+          <StatTile label={t("save.movingTime")} value={formatClock(elapsedMs()).replace(/^00:/, "")} />
+          <StatTile label={t("common.elevationGain")} value={formatElevation(stats.elevationGainM, true)} />
+          <StatTile label={t("save.points")} value={String(points.length)} />
         </div>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">Name</span>
+          <span className="text-sm font-semibold">{t("common.name")}</span>
           <input
             required
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Morning loop on the walls"
+            placeholder={t("save.namePlaceholder")}
             className={`${FIELD} h-12`}
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">Description</span>
+          <span className="text-sm font-semibold">{t("common.description")}</span>
           <textarea
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Notes about this trail (optional)"
+            placeholder={t("common.notesPlaceholder")}
             className={`${FIELD} resize-none py-3 text-[15px]`}
           />
         </label>
@@ -112,18 +114,18 @@ function SaveRecordingView() {
         <div className="mt-auto flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-3">
             <button type="button" onClick={() => void handleResume()} className="h-[54px] rounded-2xl border border-line-strong bg-surface text-base font-semibold">
-              Resume
+              {t("common.resume")}
             </button>
             <button
               type="submit"
               disabled={saving || name.trim() === ""}
               className="h-[54px] rounded-2xl bg-brand text-base font-semibold text-white active:bg-brand-dark disabled:opacity-50"
             >
-              {saving ? "Saving…" : "Save trail"}
+              {saving ? t("common.saving") : t("common.saveTrail")}
             </button>
           </div>
           <button type="button" onClick={() => void handleDiscard()} className="h-11 text-[15px] font-semibold text-red-700">
-            Discard recording
+            {t("save.discard")}
           </button>
         </div>
       </form>

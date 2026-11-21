@@ -1,5 +1,6 @@
 import logo from "../../../assets/icon/logo.png";
 import { formatDistance } from "../../../shared/gps/trail_stats";
+import { plural, useT } from "../../../shared/i18n/i18n";
 
 interface HomeHeaderProps {
   trailCount: number;
@@ -12,6 +13,7 @@ function HomeHeader({
   totalDistanceM,
   onOpenSettings,
 }: HomeHeaderProps) {
+  const t = useT();
   return (
     <header className="flex items-end justify-between">
       <div className="flex flex-col gap-1">
@@ -22,16 +24,18 @@ function HomeHeader({
           </span>
         </div>
         <h1 className="font-display text-[34px] leading-tight font-bold tracking-tight">
-          Trails
+          {t("home.title")}
         </h1>
         <p className="text-sm text-muted">
-          {trailCount} {trailCount === 1 ? "trail" : "trails"} ·{" "}
-          {formatDistance(totalDistanceM)} in total
+          {t("home.summary", {
+            trails: plural("common.trail", trailCount, t),
+            distance: formatDistance(totalDistanceM),
+          })}
         </p>
       </div>
       <button
         type="button"
-        aria-label="Settings"
+        aria-label={t("home.settings")}
         onClick={onOpenSettings}
         className="flex size-11 items-center justify-center rounded-full border border-line-strong bg-surface"
       >

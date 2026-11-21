@@ -1,3 +1,4 @@
+import { t } from "../../../shared/i18n/i18n";
 import { create } from "zustand";
 import type { Trail } from "../interfaces/trail";
 import { trailRepository } from "../repositories/trail_repository";
@@ -28,7 +29,7 @@ function normalize(input: Partial<NewTrail>): Partial<NewTrail> {
   const result = { ...input };
   if (result.name !== undefined) {
     result.name = result.name.trim();
-    if (result.name === "") throw new Error("A trail needs a name.");
+    if (result.name === "") throw new Error(t("error.nameRequired"));
   }
   if (result.description !== undefined) result.description = result.description.trim();
   return result;
@@ -59,7 +60,7 @@ export const useTrailStore = create<TrailState>((set, get) => ({
 
   updateTrail: async (id, changes) => {
     const existing = get().trails.find((t) => t.id === id);
-    if (!existing) throw new Error("Trail not found.");
+    if (!existing) throw new Error(t("error.trailNotFound"));
     const updated: Trail = { ...existing, ...normalize(changes) };
     await trailRepository.save(updated);
     set((state) => ({ trails: state.trails.map((t) => (t.id === id ? updated : t)) }));

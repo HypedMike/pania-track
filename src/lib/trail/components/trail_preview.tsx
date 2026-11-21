@@ -1,3 +1,4 @@
+import { useT } from "../../../shared/i18n/i18n";
 import type { GpsCoordinate } from "../interfaces/gps_coordinate";
 import type { TrailSource } from "../interfaces/trail";
 
@@ -6,6 +7,7 @@ const PAD = 10;
 
 /** Small schematic of a trail's shape, used as a list thumbnail. */
 function TrailPreview({ coordinates, source }: { coordinates: GpsCoordinate[]; source: TrailSource }) {
+  const t = useT();
   if (coordinates.length < 2) {
     return <div className="size-[72px] shrink-0 rounded-xl bg-map" aria-hidden="true" />;
   }
@@ -34,7 +36,7 @@ function TrailPreview({ coordinates, source }: { coordinates: GpsCoordinate[]; s
       height={SIZE}
       viewBox={`0 0 ${SIZE} ${SIZE}`}
       role="img"
-      aria-label="Route preview"
+      aria-label={t("preview.alt")}
       className="shrink-0 rounded-xl bg-map"
     >
       <polyline

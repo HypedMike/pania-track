@@ -5,6 +5,7 @@ import {
   formatElevation,
   type TrailStats,
 } from "../../../shared/gps/trail_stats";
+import { useT } from "../../../shared/i18n/i18n";
 import TrailPreview from "../../trail/components/trail_preview";
 import type { Trail } from "../../trail/interfaces/trail";
 
@@ -15,6 +16,7 @@ interface TrailListItemProps {
 }
 
 function TrailListItem({ trail, stats, onSelect }: TrailListItemProps) {
+  const t = useT();
   return (
     <li>
       <button
@@ -33,7 +35,7 @@ function TrailListItem({ trail, stats, onSelect }: TrailListItemProps) {
                   : "bg-brand-tint text-brand-tint-ink"
               }`}
             >
-              {trail.source === "imported" ? "Imported GPX" : "Recorded"}
+              {trail.source === "imported" ? t("trail.sourceImported") : t("trail.sourceRecorded")}
             </span>
             <span className="text-[13px] text-muted">
               {formatDate(trail.createdAt)}

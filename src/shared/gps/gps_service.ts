@@ -1,3 +1,4 @@
+import { t } from "../i18n/i18n";
 import {
   checkPermissions,
   getCurrentPosition as getNativePosition,
@@ -16,14 +17,14 @@ async function ensureNativePermission(): Promise<void> {
     status = await requestPermissions(["location"]);
   }
   if (status.location !== "granted") {
-    throw new Error("Location permission was denied.");
+    throw new Error(t("error.permissionDenied"));
   }
 }
 
 function getBrowserPosition(): Promise<GpsFix> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not available on this device."));
+      reject(new Error(t("error.geoUnavailable")));
       return;
     }
     navigator.geolocation.getCurrentPosition(

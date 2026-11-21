@@ -1,3 +1,5 @@
+import { useT } from "../../../shared/i18n/i18n";
+
 interface HomeActionsProps {
   recordDisabled: boolean;
   onRecord: () => void;
@@ -5,6 +7,7 @@ interface HomeActionsProps {
 }
 
 function HomeActions({ recordDisabled, onRecord, onImport }: HomeActionsProps) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-2 gap-3">
@@ -26,7 +29,7 @@ function HomeActions({ recordDisabled, onRecord, onImport }: HomeActionsProps) {
             <circle cx="12" cy="12" r="9" />
             <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
           </svg>
-          Record
+          {t("home.record")}
         </button>
         <button
           type="button"
@@ -47,11 +50,11 @@ function HomeActions({ recordDisabled, onRecord, onImport }: HomeActionsProps) {
             <path d="M12 15V4M7 9l5-5 5 5" />
             <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
           </svg>
-          Import GPX
+          {t("home.import")}
         </button>
       </div>
       <p className="text-center text-[13px] text-muted">
-        Record a new track live, or import a .gpx / .kml file
+        {t("home.actionsHint")}
       </p>
     </div>
   );

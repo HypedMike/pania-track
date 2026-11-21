@@ -1,3 +1,4 @@
+import { t } from "../i18n/i18n";
 import type { GpsCoordinate } from "../../lib/trail/interfaces/gps_coordinate";
 import type { Trail, Waypoint } from "../../lib/trail/interfaces/trail";
 
@@ -11,7 +12,7 @@ export interface ParsedTrack {
 
 function parseXml(text: string): Document {
   const doc = new DOMParser().parseFromString(text, "application/xml");
-  if (doc.querySelector("parsererror")) throw new Error("This file is not valid XML.");
+  if (doc.querySelector("parsererror")) throw new Error(t("error.invalidXml"));
   return doc;
 }
 
@@ -137,8 +138,8 @@ export function parseTrackFile(text: string, filename: string): ParsedTrack {
   let parsed: ParsedTrack;
   if (root === "gpx") parsed = parseGpx(doc);
   else if (root === "kml") parsed = parseKml(doc);
-  else throw new Error(`"${filename}" is not a GPX or KML file.`);
-  if (parsed.segments.length === 0) throw new Error("No track points were found in this file.");
+  else throw new Error(t("error.notGpxKml", { file: filename }));
+  if (parsed.segments.length === 0) throw new Error(t("error.noTrackPoints"));
   return parsed;
 }
 

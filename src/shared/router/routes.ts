@@ -4,6 +4,7 @@ export const ROUTES = {
   saveRecording: "/record/save",
   importTrail: "/import",
   settings: "/settings",
+  stats: "/stats",
   trailDetail: "/trails/:id",
 } as const;
 

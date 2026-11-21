@@ -1,3 +1,5 @@
+import { useT } from "../../../shared/i18n/i18n";
+
 export interface FilterTab<T extends string> {
   id: T;
   label: string;
@@ -15,8 +17,9 @@ function FilterTabs<T extends string>({
   selected,
   onSelect,
 }: FilterTabsProps<T>) {
+  const t = useT();
   return (
-    <div className="flex gap-2" role="tablist" aria-label="Filter trails">
+    <div className="flex gap-2" role="tablist" aria-label={t("home.filterLabel")}>
       {tabs.map((tab) => (
         <button
           key={tab.id}

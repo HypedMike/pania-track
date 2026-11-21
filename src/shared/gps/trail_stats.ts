@@ -1,3 +1,4 @@
+import { currentLocale } from "../i18n/i18n";
 import type { GpsCoordinate } from "../../lib/trail/interfaces/gps_coordinate";
 
 const EARTH_RADIUS_M = 6_371_000;
@@ -74,7 +75,7 @@ export function formatDuration(ms: number | null): string {
 
 export function formatDate(ms?: number): string {
   if (!ms) return "";
-  return new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return new Date(ms).toLocaleDateString(currentLocale(), { month: "short", day: "numeric" });
 }
 
 /** Average pace as "m:ss /km", or "—" when there is no distance yet. */
