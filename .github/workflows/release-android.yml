@@ -32,7 +32,7 @@ jobs:
           yes | "$SDKM" --licenses >/dev/null || true
           "$SDKM" "cmdline-tools;latest"
           SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "$SDKM" "platforms;android-37" "build-tools;36.0.0" "ndk;28.2.13676358"
+          "$SDKM" "platforms;android-37.0" "build-tools;36.0.0" "ndk;28.2.13676358"
           echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@stable
         with:
