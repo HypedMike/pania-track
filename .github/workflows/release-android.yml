@@ -1,0 +1,86 @@
+name: Release Android
+
+# Push a tag like v0.2.0 to build, sign and publish a GitHub Release.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Install NDK
+        run: |
+          sdkmanager "ndk;28.2.13676358"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Set version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
+          node scripts/set-version.mjs "$VERSION" | tee -a "$GITHUB_OUTPUT"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore signing keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build signed APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: pnpm tauri android build --apk --target aarch64 --target armv7
+
+      - name: Verify signature and version
+        run: |
+          APK="$(find src-tauri/gen/android/app/build/outputs/apk -name '*release*.apk' | head -n1)"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)"
+          "$BT/apksigner" verify --print-certs "$APK"
+          "$BT/aapt2" dump badging "$APK" | grep -E "^package:"
+
+      - name: Name the artifact
+        run: |
+          mkdir dist-release
+          cp "$APK" "dist-release/pania-${{ steps.version.outputs.version }}.apk"
+
+      - uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: dist-release/*.apk
+          generate_release_notes: true
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type != 'tag'
+        with:
+          name: pania-apk
+          path: dist-release/*.apk
