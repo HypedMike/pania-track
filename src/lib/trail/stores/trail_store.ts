@@ -1,10 +1,9 @@
 import { create } from "zustand";
-import type { GpsCoordinate } from "../interfaces/gps_coordinate";
 import type { Trail } from "../interfaces/trail";
 import { trailRepository } from "../repositories/trail_repository";
 
 /** Fields the user provides; the store generates the rest. */
-export type NewTrail = Pick<Trail, "name" | "description" | "coordinates">;
+export type NewTrail = Pick<Trail, "name" | "description" | "coordinates" | "waypoints" | "source">;
 
 interface TrailState {
   trails: Trail[];
@@ -17,8 +16,6 @@ interface TrailState {
   createTrail: (input: NewTrail) => Promise<Trail>;
   /** Applies changes to an existing trail and persists them. */
   updateTrail: (id: string, changes: Partial<NewTrail>) => Promise<Trail>;
-  /** Appends one GPS point to the end of a trail's path. */
-  appendCoordinate: (id: string, coordinate: GpsCoordinate) => Promise<Trail>;
   deleteTrail: (id: string) => Promise<void>;
   getTrail: (id: string) => Trail | undefined;
 }
@@ -53,7 +50,8 @@ export const useTrailStore = create<TrailState>((set, get) => ({
 
   createTrail: async (input) => {
     const data = normalize(input) as NewTrail;
-    const trail: Trail = { ...data, id: crypto.randomUUID() };
+    const now = Date.now();
+    const trail: Trail = { ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now };
     await trailRepository.save(trail);
     set((state) => ({ trails: [trail, ...state.trails] }));
     return trail;
@@ -66,12 +64,6 @@ export const useTrailStore = create<TrailState>((set, get) => ({
     await trailRepository.save(updated);
     set((state) => ({ trails: state.trails.map((t) => (t.id === id ? updated : t)) }));
     return updated;
-  },
-
-  appendCoordinate: async (id, coordinate) => {
-    const existing = get().trails.find((t) => t.id === id);
-    if (!existing) throw new Error("Trail not found.");
-    return get().updateTrail(id, { coordinates: [...existing.coordinates, coordinate] });
   },
 
   deleteTrail: async (id) => {

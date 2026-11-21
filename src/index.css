@@ -1,5 +1,86 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+
+  --color-canvas: #f6f7f4;
+  --color-ink: #16201b;
+  --color-ink-soft: #3a453f;
+  --color-muted: #56615a;
+  --color-line: #e3e8e1;
+  --color-line-strong: #d5dbd3;
+  --color-map: #e6ece1;
+  --color-surface: #ffffff;
+  --color-on-ink: #ffffff;
+  /* brand = filled buttons (white text on top); brand-fg = brand-coloured text, strokes, focus rings */
+  --color-brand: #127a4b;
+  --color-brand-dark: #0d5c38;
+  --color-brand-fg: #127a4b;
+  --color-brand-tint: #e3f1e9;
+  --color-brand-tint-ink: #0d5c38;
+  --color-route: #2f6fdb;
+  --color-route-tint: #e4ecfb;
+  --color-route-ink: #1e4fb8;
+  --color-danger: #c2410c;
+}
+
+/* Dark theme. <html data-theme> is set from the user's setting (system by default) in shared/theme/theme.ts. */
+:root[data-theme="dark"] {
+  --color-canvas: #0f1512;
+  --color-surface: #18201c;
+  --color-ink: #e8ede9;
+  --color-on-ink: #0f1512;
+  --color-ink-soft: #c3ccc6;
+  --color-muted: #9aa59e;
+  --color-line: #252e2a;
+  --color-line-strong: #2c3631;
+  --color-map: #1c2520;
+  --color-brand-fg: #4cc38a;
+  --color-brand-tint: #163325;
+  --color-brand-tint-ink: #7fd9a8;
+  --color-route: #6a9bf0;
+  --color-route-tint: #1b2a47;
+  --color-route-ink: #9dbbf5;
+
+  /* Darken OSM raster tiles */
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6);
+  }
+  .leaflet-container {
+    background: var(--color-map);
+  }
+  .leaflet-container .leaflet-control-attribution {
+    background: rgb(15 21 18 / 0.7);
+    color: var(--color-muted);
+  }
+  .leaflet-container .leaflet-control-attribution a {
+    color: var(--color-brand-fg);
+  }
+  .leaflet-tooltip {
+    background: var(--color-surface);
+    border-color: var(--color-line-strong);
+    color: var(--color-ink);
+  }
+}
+
+@layer base {
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand-fg);
+    outline-offset: 2px;
+  }
+}
+
+
 /* Route transitions (View Transitions API, enabled via navigate's viewTransition) */
 ::view-transition-old(root) {
   animation: route-out 150ms ease-in both;

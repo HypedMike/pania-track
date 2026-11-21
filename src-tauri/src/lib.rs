@@ -6,12 +6,20 @@ const DB_URL: &str = "sqlite:pania.db";
 
 /// Append new migrations to the end; never edit one that has shipped.
 fn migrations() -> Vec<Migration> {
-    vec![Migration {
-        version: 1,
-        description: "create_trails",
-        sql: include_str!("../migrations/001_create_trails.sql"),
-        kind: MigrationKind::Up,
-    }]
+    vec![
+        Migration {
+            version: 1,
+            description: "create_trails",
+            sql: include_str!("../migrations/001_create_trails.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "trail_source_waypoints",
+            sql: include_str!("../migrations/002_trail_source_waypoints.sql"),
+            kind: MigrationKind::Up,
+        },
+    ]
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,6 +35,9 @@ pub fn run() {
     // GPS access is only available on mobile; desktop falls back to the browser API.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_geolocation::init());
+
+    // Records tracks in an Android foreground service so recording survives the screen turning off.
+    let builder = builder.plugin(tauri_plugin_trail_recorder::init());
 
     builder
         .run(tauri::generate_context!())

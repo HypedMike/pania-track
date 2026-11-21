@@ -1,29 +1,30 @@
 import { useEffect, useMemo } from "react";
 import {
+  CircleMarker,
   MapContainer,
-  Marker,
   Polyline,
   TileLayer,
+  Tooltip,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import L, { type LatLngTuple } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-import type { Trail } from "../interfaces/trail";
-
-// Leaflet's default marker icons break under bundlers; set them explicitly.
-const defaultIcon = L.icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+import type { GpsCoordinate } from "../interfaces/gps_coordinate";
+import type { Waypoint } from "../interfaces/trail";
+import { useColorScheme } from "../../../shared/theme/use_color_scheme";
 
 const DEFAULT_CENTER: LatLngTuple = [41.9028, 12.4964];
 const DEFAULT_ZOOM = 6;
+const LIVE_ZOOM = 16;
+
+const AMBER = "#F59E0B";
+
+// Leaflet writes colours as SVG attributes, where CSS variables don't resolve.
+const PALETTE = {
+  light: { ink: "#16201B", route: "#2F6FDB", brand: "#127A4B", halo: "#FFFFFF" },
+  dark: { ink: "#E8EDE9", route: "#6A9BF0", brand: "#4CC38A", halo: "#0F1512" },
+};
 
 function FitBounds({ positions }: { positions: LatLngTuple[] }) {
   const map = useMap();
@@ -35,39 +36,103 @@ function FitBounds({ positions }: { positions: LatLngTuple[] }) {
   return null;
 }
 
+/** Keeps the map centred on the live position while `follow` is on; reports manual panning. */
+function Follow({
+  current,
+  follow,
+  followKey,
+  onUserMove,
+}: {
+  current: LatLngTuple;
+  follow: boolean;
+  followKey: number;
+  onUserMove?: () => void;
+}) {
+  const map = useMap();
+  useMapEvents({ dragstart: () => onUserMove?.() });
+  useEffect(() => {
+    if (follow) map.setView(current, Math.max(map.getZoom(), LIVE_ZOOM), { animate: true });
+  }, [map, current, follow, followKey]);
+  return null;
+}
+
 interface TrailMapProps {
-  trail?: Trail;
+  coordinates: GpsCoordinate[];
+  waypoints?: Waypoint[];
+  /** Line colour; imported trails are blue, recorded trails green. */
+  color?: "recorded" | "imported";
+  /** Fit the whole trail in view. Turn off for live maps, which follow `current` instead. */
+  fit?: boolean;
+  /** Live position, drawn as a blue dot. */
+  current?: GpsCoordinate | null;
+  follow?: boolean;
+  /** Change to re-centre on the live position. */
+  followKey?: number;
+  onUserMove?: () => void;
   className?: string;
 }
 
-function TrailMap({ trail, className }: TrailMapProps) {
+function TrailMap({
+  coordinates,
+  waypoints = [],
+  color = "recorded",
+  fit = true,
+  current,
+  follow = false,
+  followKey = 0,
+  onUserMove,
+  className,
+}: TrailMapProps) {
+  const { ink: INK, route: ROUTE, brand: BRAND, halo: HALO } = PALETTE[useColorScheme()];
   const positions = useMemo<LatLngTuple[]>(
-    () => (trail?.coordinates ?? []).map((c) => [c.latitude, c.longitude]),
-    [trail],
+    () => coordinates.map((c) => [c.latitude, c.longitude]),
+    [coordinates],
   );
-
   const start = positions[0];
   const end = positions[positions.length - 1];
+  const currentPos: LatLngTuple | undefined = current ? [current.latitude, current.longitude] : undefined;
+  const initial = currentPos ?? start ?? DEFAULT_CENTER;
+  const line = color === "imported" ? ROUTE : BRAND;
 
   return (
     <MapContainer
-      center={start ?? DEFAULT_CENTER}
-      zoom={start ? 13 : DEFAULT_ZOOM}
+      center={initial}
+      zoom={currentPos ? LIVE_ZOOM : start ? 13 : DEFAULT_ZOOM}
       className={className}
-      style={{ height: "100%", width: "100%", minHeight: 300 }}
+      zoomControl={false}
+      style={{ height: "100%", width: "100%", minHeight: 240 }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {positions.length > 0 && (
+      {positions.length > 1 && (
+        <Polyline positions={positions} pathOptions={{ color: line, weight: 5, lineCap: "round", lineJoin: "round" }} />
+      )}
+      {start && (
+        <CircleMarker center={start} radius={7} pathOptions={{ color: INK, weight: 3, fillColor: HALO, fillOpacity: 1 }} />
+      )}
+      {end && positions.length > 1 && !current && (
+        <CircleMarker center={end} radius={7} pathOptions={{ color: HALO, weight: 3, fillColor: INK, fillOpacity: 1 }} />
+      )}
+      {waypoints.map((w, i) => (
+        <CircleMarker
+          key={i}
+          center={[w.latitude, w.longitude]}
+          radius={6}
+          pathOptions={{ color: HALO, weight: 2, fillColor: AMBER, fillOpacity: 1 }}
+        >
+          <Tooltip>{w.name}</Tooltip>
+        </CircleMarker>
+      ))}
+      {currentPos && (
         <>
-          <Polyline positions={positions} pathOptions={{ weight: 4 }} />
-          <Marker position={start} icon={defaultIcon} />
-          {positions.length > 1 && <Marker position={end} icon={defaultIcon} />}
-          <FitBounds positions={positions} />
+          <CircleMarker center={currentPos} radius={20} pathOptions={{ stroke: false, fillColor: ROUTE, fillOpacity: 0.18 }} />
+          <CircleMarker center={currentPos} radius={9} pathOptions={{ color: HALO, weight: 3, fillColor: ROUTE, fillOpacity: 1 }} />
+          <Follow current={currentPos} follow={follow} followKey={followKey} onUserMove={onUserMove} />
         </>
       )}
+      {fit && <FitBounds positions={positions} />}
     </MapContainer>
   );
 }

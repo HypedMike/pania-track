@@ -5,6 +5,9 @@ import {
 } from "@tauri-apps/plugin-geolocation";
 import type { GpsCoordinate } from "../../lib/trail/interfaces/gps_coordinate";
 
+/** A position reading, with the device's estimated accuracy in meters (not persisted). */
+export type GpsFix = GpsCoordinate & { accuracy?: number };
+
 const isMobile = /android|iphone|ipad/i.test(navigator.userAgent);
 
 async function ensureNativePermission(): Promise<void> {
@@ -17,7 +20,7 @@ async function ensureNativePermission(): Promise<void> {
   }
 }
 
-function getBrowserPosition(): Promise<GpsCoordinate> {
+function getBrowserPosition(): Promise<GpsFix> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Geolocation is not available on this device."));
@@ -28,6 +31,7 @@ function getBrowserPosition(): Promise<GpsCoordinate> {
         resolve({
           latitude: p.coords.latitude,
           longitude: p.coords.longitude,
+          accuracy: p.coords.accuracy,
           ...(p.coords.altitude !== null && { altitude: p.coords.altitude }),
           timestamp: new Date(p.timestamp).toISOString(),
         }),
@@ -44,12 +48,13 @@ export const gpsService = {
   },
 
   /** Reads the current GPS position. The native plugin is used on mobile, the browser API on desktop. */
-  async getCurrentPosition(): Promise<GpsCoordinate> {
+  async getCurrentPosition(): Promise<GpsFix> {
     if (!isMobile) return getBrowserPosition();
     const p = await getNativePosition({ enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 });
     return {
       latitude: p.coords.latitude,
       longitude: p.coords.longitude,
+      accuracy: p.coords.accuracy,
       ...(p.coords.altitude != null && { altitude: p.coords.altitude }),
       timestamp: new Date(p.timestamp).toISOString(),
     };

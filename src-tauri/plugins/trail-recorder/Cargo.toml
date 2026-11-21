@@ -1,0 +1,16 @@
+[package]
+name = "tauri-plugin-trail-recorder"
+version = "0.1.0"
+edition = "2021"
+description = "Records GPS tracks in an Android foreground service, so recording continues with the screen off."
+links = "tauri-plugin-trail-recorder"
+publish = false
+
+[dependencies]
+tauri = { version = "2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
