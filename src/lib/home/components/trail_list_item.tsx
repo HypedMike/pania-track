@@ -37,6 +37,9 @@ function TrailListItem({ trail, stats, onSelect }: TrailListItemProps) {
             >
               {trail.source === "imported" ? t("trail.sourceImported") : t("trail.sourceRecorded")}
             </span>
+            <span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-soft">
+              {t(`activity.${trail.activity}`)}
+            </span>
             <span className="text-[13px] text-muted">
               {formatDate(trail.createdAt)}
             </span>

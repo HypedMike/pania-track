@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Status-bar height. Android injects the real value (see MainActivity.kt); env() covers browsers/iOS. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;

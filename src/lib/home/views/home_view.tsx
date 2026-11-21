@@ -56,7 +56,7 @@ function HomeView() {
           onOpenSettings={() => goTo(ROUTES.settings)}
         />
       }
-      className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-5 pt-7 pb-6"
+      className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-5 pt-[calc(1.75rem+var(--safe-top))] pb-6"
     >
       {recordingStatus !== "idle" && (
         <RecordingBanner

@@ -19,7 +19,7 @@ function PageHeader({
   action,
 }: PageHeaderProps) {
   return (
-    <header className="grid h-20 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-surface px-3 pt-5">
+    <header className="grid h-[calc(5rem+var(--safe-top))] shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-surface px-3 pt-[calc(1.25rem+var(--safe-top))]">
       {onBack ? (
         <button
           type="button"

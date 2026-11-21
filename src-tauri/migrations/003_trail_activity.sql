@@ -1,0 +1,1 @@
+ALTER TABLE trails ADD COLUMN activity TEXT NOT NULL DEFAULT 'foot';

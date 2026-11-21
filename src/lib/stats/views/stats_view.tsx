@@ -115,7 +115,7 @@ function StatsView() {
   const recordedPct = splitTotal > 0 ? Math.round((summary.recorded.distanceM / splitTotal) * 100) : 0;
 
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <MainLayout
         header={
           <header className="flex flex-col gap-1">
@@ -123,7 +123,7 @@ function StatsView() {
             <p className="text-sm text-muted">{periodSubtitle(period, now, t)}</p>
           </header>
         }
-        className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-5 pt-7 pb-6"
+        className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-5 pt-[calc(1.75rem+var(--safe-top))] pb-6"
       >
         <div
           role="tablist"
@@ -234,7 +234,7 @@ function StatsView() {
         )}
       </MainLayout>
       <BottomNav current="stats" />
-    </>
+    </div>
   );
 }
 

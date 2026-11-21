@@ -68,7 +68,7 @@ function RecordingView() {
         />
       </div>
 
-      <div className="pointer-events-none absolute top-5 right-4 left-4 z-[1000] flex justify-between">
+      <div className="pointer-events-none absolute top-[calc(1.25rem+var(--safe-top))] right-4 left-4 z-[1000] flex justify-between">
         <button
           type="button"
           onClick={goBack}
