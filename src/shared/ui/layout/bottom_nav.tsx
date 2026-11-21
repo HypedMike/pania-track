@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import { useT } from "../../i18n/i18n";
 import { ROUTES } from "../../router/routes";
 import { useNavigation } from "../../router/use_navigation";
@@ -16,6 +17,11 @@ const ICONS: Record<Tab, React.ReactNode> = {
 /** Bottom tab bar switching between the trail list and the stats screen. */
 function BottomNav({ current }: { current: Tab }) {
   const t = useT();
+  // On a tab switch the new page must be captured scrolled to the top, otherwise its header
+  // jumps while sliding in (the previous tab may have been scrolled further than this one is tall).
+  useLayoutEffect(() => {
+    if (document.documentElement.dataset.tabDir) window.scrollTo(0, 0);
+  }, []);
   const { goTo } = useNavigation();
   const tabs: { id: Tab; label: string; route: typeof ROUTES.home | typeof ROUTES.stats }[] = [
     { id: "trails", label: t("nav.trails"), route: ROUTES.home },

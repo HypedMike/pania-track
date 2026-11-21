@@ -18,7 +18,7 @@ function HomeHeader({
     <header className="flex items-end justify-between">
       <div className="flex flex-col gap-1">
         <div className="mb-1.5 flex items-center gap-1.5 text-brand-fg">
-          <img src={logo} alt="" className="size-7 rounded-lg" />
+          <img src={logo} alt="" decoding="sync" className="size-7 rounded-lg" />
           <span className="font-display text-xl font-bold tracking-tight">
             pania
           </span>

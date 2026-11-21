@@ -4,44 +4,9 @@ import type { AppRoute } from "./routes";
 
 type Direction = "forward" | "back";
 
+/** Read by the route-transition rules in index.css to pick the slide direction. */
 function setDirection(direction: Direction) {
   document.documentElement.dataset.navDirection = direction;
-}
-
-/**
- * Resolves once the DOM under #root has changed and settled (no mutations for
- * `quietMs`), or after `maxMs` as a safety net. React Router renders route
- * changes asynchronously, so we can't know exactly when the new page is in.
- */
-function waitForRender(start: () => void, quietMs = 60, maxMs = 800) {
-  return new Promise<void>((resolve) => {
-    const root = document.getElementById("root") ?? document.body;
-    let quietTimer: number | undefined;
-    const done = () => {
-      observer.disconnect();
-      window.clearTimeout(quietTimer);
-      window.clearTimeout(maxTimer);
-      resolve();
-    };
-    const observer = new MutationObserver(() => {
-      window.clearTimeout(quietTimer);
-      quietTimer = window.setTimeout(done, quietMs);
-    });
-    const maxTimer = window.setTimeout(done, maxMs);
-    observer.observe(root, { childList: true, subtree: true });
-    start();
-  });
-}
-
-/** Run `navigate` inside a view transition tagged as a backward navigation. */
-function backTransition(navigate: () => void) {
-  setDirection("back");
-  if (!document.startViewTransition) {
-    navigate();
-    return;
-  }
-  const transition = document.startViewTransition(() => waitForRender(navigate));
-  transition.finished.finally(() => setDirection("forward"));
 }
 
 export function useNavigation() {
@@ -54,11 +19,17 @@ export function useNavigation() {
     },
     [navigate],
   );
-  const goBack = useCallback(
-    () => backTransition(() => navigate(-1)),
-    [navigate],
-  );
-  const goForward = useCallback(() => navigate(1), [navigate]);
+  // React Router runs the view transition itself when history goes back to a page it
+  // previously transitioned away from, so all we do is flag the direction. Starting our
+  // own document.startViewTransition here collides with it and the flag gets reset early.
+  const goBack = useCallback(() => {
+    setDirection("back");
+    return navigate(-1);
+  }, [navigate]);
+  const goForward = useCallback(() => {
+    setDirection("forward");
+    return navigate(1);
+  }, [navigate]);
 
   return useMemo(
     () => ({ goTo, goBack, goForward }),
