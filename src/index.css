@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+/* Route transitions (View Transitions API, enabled via navigate's viewTransition) */
+::view-transition-old(root) {
+  animation: route-out 150ms ease-in both;
+}
+::view-transition-new(root) {
+  animation: route-in 250ms ease-out both;
+}
+@keyframes route-out {
+  to {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

@@ -6,10 +6,14 @@ export function useNavigation() {
   const navigate = useNavigate();
 
   const goTo = useCallback(
-    (route: AppRoute, options?: NavigateOptions) => navigate(route, options),
+    (route: AppRoute, options?: NavigateOptions) =>
+      navigate(route, { viewTransition: true, ...options }),
     [navigate],
   );
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(
+    () => navigate(-1),
+    [navigate],
+  );
   const goForward = useCallback(() => navigate(1), [navigate]);
 
   return useMemo(
