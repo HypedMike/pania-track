@@ -16,9 +16,17 @@ function apply() {
   (window as { PaniaSystemBars?: { setDark(dark: boolean): void } }).PaniaSystemBars?.setDark(scheme === "dark");
 }
 
+/** Android: apply the status-bar height reported by the native side (see MainActivity.kt). */
+function applySafeInsets() {
+  const bars = (window as { PaniaSystemBars?: { topInset?(): number } }).PaniaSystemBars;
+  const top = bars?.topInset?.();
+  if (top) document.documentElement.style.setProperty("--safe-top", `${top}px`);
+}
+
 /** Keeps <html data-theme> in sync with the setting and the system scheme. Call once at startup. */
 export function initTheme() {
   apply();
+  applySafeInsets();
   useSettingsStore.subscribe(apply);
   window.matchMedia(QUERY).addEventListener("change", apply);
 }

@@ -65,7 +65,7 @@ function SaveRecordingView() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 pt-7 pb-6">
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 pt-[calc(1.75rem+var(--safe-top))] pb-6">
       <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4">
         <header className="flex flex-col gap-1">
           <h1 className="font-display text-[28px] font-bold">{t("save.title")}</h1>
