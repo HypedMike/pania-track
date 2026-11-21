@@ -10,6 +10,8 @@ import {
   formatElevation,
 } from "../../../shared/gps/trail_stats";
 import PageHeader from "../../../shared/ui/layout/page_header";
+import ActivityPicker from "../components/activity_picker";
+import type { TrailActivity } from "../interfaces/trail";
 import StatTile from "../components/stat_tile";
 import TrailMap from "../components/trail_map";
 import { useTrailStore } from "../stores/trail_store";
@@ -33,6 +35,7 @@ function ImportTrailView() {
   const input = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [name, setName] = useState("");
+  const [activity, setActivity] = useState<TrailActivity>("foot");
   const [nameFromFile, setNameFromFile] = useState(false);
   const [description, setDescription] = useState("");
   const [join, setJoin] = useState(true);
@@ -76,6 +79,7 @@ function ImportTrailView() {
             name: parts.length > 1 ? `${name.trim()} (${i + 1})` : name,
             description,
             source: "imported",
+            activity,
             coordinates,
             // Waypoints belong to the file as a whole; keep them with the first trail.
             waypoints: i === 0 ? track.waypoints : [],
@@ -167,6 +171,8 @@ function ImportTrailView() {
               className={`${FIELD} resize-none py-3 text-[15px]`}
             />
           </label>
+
+          <ActivityPicker value={activity} onChange={setActivity} />
 
           {segments.length > 1 && (
             <label className="flex min-h-11 items-center gap-2.5 text-sm text-ink-soft">

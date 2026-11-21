@@ -12,6 +12,8 @@ import {
   formatElevation,
 } from "../../../shared/gps/trail_stats";
 import PageHeader from "../../../shared/ui/layout/page_header";
+import ActivityPicker from "../components/activity_picker";
+import type { TrailActivity } from "../interfaces/trail";
 import ElevationProfile from "../components/elevation_profile";
 import TrailMap from "../components/trail_map";
 import { useTrailStore } from "../stores/trail_store";
@@ -48,6 +50,7 @@ function TrailDetailView() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [activity, setActivity] = useState<TrailActivity>("foot");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +77,7 @@ function TrailDetailView() {
     if (!trail) return;
     setName(trail.name);
     setDescription(trail.description ?? "");
+    setActivity(trail.activity);
     setError(null);
     setEditing(true);
   }
@@ -83,7 +87,7 @@ function TrailDetailView() {
     setSaving(true);
     setError(null);
     try {
-      await updateTrail(id, { name, description });
+      await updateTrail(id, { name, description, activity });
       setEditing(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -184,6 +188,7 @@ function TrailDetailView() {
                 className={`${FIELD} h-12`}
               />
             </label>
+            <ActivityPicker value={activity} onChange={setActivity} />
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold">
                 {t("common.description")}
@@ -229,6 +234,9 @@ function TrailDetailView() {
                 {imported
                   ? t("trail.sourceImported")
                   : t("trail.sourceRecorded")}
+              </span>
+              <span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-soft">
+                {t(`activity.${trail.activity}`)}
               </span>
               <span>
                 {t("detail.pointsLine", {

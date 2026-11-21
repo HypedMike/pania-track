@@ -1,5 +1,5 @@
 import { getDatabase } from "../../../shared/database/database";
-import { Trail, TrailSource, Waypoint } from "../interfaces/trail";
+import { Trail, TrailActivity, TrailSource, Waypoint } from "../interfaces/trail";
 import { GpsCoordinate } from "../interfaces/gps_coordinate";
 
 interface TrailRow {
@@ -7,6 +7,7 @@ interface TrailRow {
   name: string;
   description: string;
   source: TrailSource;
+  activity: TrailActivity;
   created_at: string;
   updated_at: string;
 }
@@ -15,7 +16,7 @@ interface WaypointRow extends CoordinateRow {
   name: string;
 }
 
-const TRAIL_COLUMNS = "id, name, description, source, created_at, updated_at";
+const TRAIL_COLUMNS = "id, name, description, source, activity, created_at, updated_at";
 
 interface CoordinateRow {
   latitude: number;
@@ -58,6 +59,7 @@ async function hydrate(row: TrailRow): Promise<Trail> {
     name: row.name,
     description: row.description,
     source: row.source,
+    activity: row.activity,
     createdAt: Date.parse(row.created_at),
     updatedAt: Date.parse(row.updated_at),
     coordinates,
@@ -93,13 +95,14 @@ export const trailRepository = {
   async save(trail: Trail): Promise<void> {
     const db = await getDatabase();
     await db.execute(
-      `INSERT INTO trails (id, name, description, source) VALUES ($1, $2, $3, $4)
+      `INSERT INTO trails (id, name, description, source, activity) VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name,
          description = excluded.description,
          source = excluded.source,
+         activity = excluded.activity,
          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
-      [trail.id, trail.name, trail.description ?? "", trail.source],
+      [trail.id, trail.name, trail.description ?? "", trail.source, trail.activity],
     );
     await db.execute("DELETE FROM trail_coordinates WHERE trail_id = $1", [trail.id]);
 

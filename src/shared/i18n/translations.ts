@@ -19,6 +19,9 @@ export const en = {
   "common.trail.other": "{n} trails",
   "trail.sourceImported": "Imported GPX",
   "trail.sourceRecorded": "Recorded",
+  "activity.label": "Activity",
+  "activity.foot": "On foot",
+  "activity.bike": "By bike",
 
   // home
   "home.title": "Trails",
@@ -171,6 +174,9 @@ export const it: Record<TranslationKey, string> = {
   "common.trail.other": "{n} percorsi",
   "trail.sourceImported": "GPX importato",
   "trail.sourceRecorded": "Registrato",
+  "activity.label": "Attività",
+  "activity.foot": "A piedi",
+  "activity.bike": "In bici",
 
   "home.title": "Percorsi",
   "home.summary": "{trails} · {distance} in totale",

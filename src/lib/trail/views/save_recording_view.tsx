@@ -3,6 +3,8 @@ import { currentLocale, useT } from "../../../shared/i18n/i18n";
 import { useNavigation } from "../../../shared/router/use_navigation";
 import { ROUTES, trailDetailPath } from "../../../shared/router/routes";
 import { computeStats, formatClock, formatDistance, formatElevation } from "../../../shared/gps/trail_stats";
+import ActivityPicker from "../components/activity_picker";
+import type { TrailActivity } from "../interfaces/trail";
 import StatTile from "../components/stat_tile";
 import TrailMap from "../components/trail_map";
 import { useRecordingStore } from "../stores/recording_store";
@@ -18,6 +20,7 @@ function SaveRecordingView() {
   const createTrail = useTrailStore((state) => state.createTrail);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [activity, setActivity] = useState<TrailActivity>("foot");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const stats = useMemo(() => computeStats(points), [points]);
@@ -40,7 +43,7 @@ function SaveRecordingView() {
     setSaving(true);
     setError(null);
     try {
-      const trail = await createTrail({ name, description, source: "recorded", coordinates: points, waypoints });
+      const trail = await createTrail({ name, description, source: "recorded", activity, coordinates: points, waypoints });
       // Leave first: clearing the session while still here would trigger the redirect home.
       goTo(trailDetailPath(trail.id), { replace: true });
       void discard();
@@ -97,6 +100,8 @@ function SaveRecordingView() {
             className={`${FIELD} h-12`}
           />
         </label>
+
+        <ActivityPicker value={activity} onChange={setActivity} />
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">{t("common.description")}</span>
