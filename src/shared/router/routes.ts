@@ -3,6 +3,8 @@ export const ROUTES = {
   record: "/record",
   saveRecording: "/record/save",
   importTrail: "/import",
+  plan: "/plan",
+  planRoutes: "/plan/routes",
   settings: "/settings",
   stats: "/stats",
   trailDetail: "/trails/:id",

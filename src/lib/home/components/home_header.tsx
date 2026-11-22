@@ -20,7 +20,7 @@ function HomeHeader({
         <div className="mb-1.5 flex items-center gap-1.5 text-brand-fg">
           <img src={logo} alt="" decoding="sync" className="size-7 rounded-lg" />
           <span className="font-display text-xl font-bold tracking-tight">
-            pania
+            Pania
           </span>
         </div>
         <h1 className="font-display text-[34px] leading-tight font-bold tracking-tight">

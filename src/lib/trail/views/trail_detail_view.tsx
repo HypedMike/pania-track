@@ -15,6 +15,7 @@ import PageHeader from "../../../shared/ui/layout/page_header";
 import ActivityPicker from "../components/activity_picker";
 import type { TrailActivity } from "../interfaces/trail";
 import ElevationProfile from "../components/elevation_profile";
+import SourceBadge from "../components/source_badge";
 import TrailMap from "../components/trail_map";
 import { useTrailStore } from "../stores/trail_store";
 
@@ -70,7 +71,6 @@ function TrailDetailView() {
     );
   }
 
-  const imported = trail.source === "imported";
   const pointCount = trail.coordinates.length;
 
   function startEditing() {
@@ -224,17 +224,7 @@ function TrailDetailView() {
               {trail.name}
             </h1>
             <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
-              <span
-                className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                  imported
-                    ? "bg-route-tint text-route-ink"
-                    : "bg-brand-tint text-brand-tint-ink"
-                }`}
-              >
-                {imported
-                  ? t("trail.sourceImported")
-                  : t("trail.sourceRecorded")}
-              </span>
+              <SourceBadge source={trail.source} />
               <span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-soft">
                 {t(`activity.${trail.activity}`)}
               </span>

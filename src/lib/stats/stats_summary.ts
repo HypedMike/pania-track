@@ -64,8 +64,9 @@ export function dayKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
+/** Planned trails haven't been walked, so they don't count toward stats. */
 export function toEntries(trails: Trail[]): TrailEntry[] {
-  return trails.map((trail) => {
+  return trails.filter((trail) => trail.source !== "planned").map((trail) => {
     const stamp = trail.coordinates.find((c) => c.timestamp)?.timestamp;
     const parsed = stamp ? Date.parse(stamp) : NaN;
     const ms = Number.isNaN(parsed) ? trail.createdAt : parsed;

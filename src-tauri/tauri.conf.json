@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "pania",
+  "productName": "Pania",
   "version": "0.1.0",
   "identifier": "com.michelesaladino.pania",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "pania",
+        "title": "Pania",
         "width": 800,
         "height": 600
       }

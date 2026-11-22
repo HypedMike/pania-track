@@ -28,6 +28,15 @@
   --color-route-tint: #e4ecfb;
   --color-route-ink: #1e4fb8;
   --color-danger: #c2410c;
+  /* amber: expert-grade routes and warnings */
+  --color-alt: #b45309;
+  --color-warn-tint: #fef3e2;
+  --color-warn-ink: #92400e;
+  /* steepness profile: < 8%, 8–15%, 15–25%, > 25% (lightness steps, not hue alone) */
+  --color-grade-0: #bfe3cd;
+  --color-grade-1: #f2cf5b;
+  --color-grade-2: #e07b39;
+  --color-grade-3: #9f2f1c;
 }
 
 /* Dark theme. <html data-theme> is set from the user's setting (system by default) in shared/theme/theme.ts. */
@@ -47,6 +56,13 @@
   --color-route: #6a9bf0;
   --color-route-tint: #1b2a47;
   --color-route-ink: #9dbbf5;
+  --color-alt: #f59e0b;
+  --color-warn-tint: #3a2a12;
+  --color-warn-ink: #fbbf77;
+  --color-grade-0: #24553c;
+  --color-grade-1: #8f7420;
+  --color-grade-2: #d06a2e;
+  --color-grade-3: #ff9b85;
 
   /* Darken OSM raster tiles */
   .leaflet-tile-pane {
@@ -67,6 +83,22 @@
     border-color: var(--color-line-strong);
     color: var(--color-ink);
   }
+}
+
+/* Numbered checkpoint pins on the planning map (Leaflet divIcon). */
+.plan-pin span {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--color-ink);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: 700 13px/1 var(--font-sans);
+  box-shadow: 0 2px 6px rgb(22 32 27 / 0.25);
 }
 
 @layer base {
