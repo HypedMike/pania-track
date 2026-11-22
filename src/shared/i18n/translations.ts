@@ -66,6 +66,15 @@ export const en = {
   "update.later": "Later",
   "settings.recordingInProgress": "A recording is in progress; the new interval applies when it resumes.",
 
+  // about
+  "about.title": "About",
+  "about.description":
+    "Record hikes with GPS, import GPX and KML tracks, and plan new trails by picking checkpoints on the map.",
+  "about.privacy":
+    "Your trails are stored only on this device. Planning sends checkpoints to the routing service, and searching sends your query to the search service.",
+  "about.source": "Source code on GitHub",
+  "about.credits": "Maps, routing and search:",
+
   // recording
   "recording.backLabel": "Back to trails (recording continues)",
   "recording.starting": "Starting…",
@@ -292,6 +301,14 @@ export const it: Record<TranslationKey, string> = {
   "update.action": "Aggiorna",
   "update.later": "Più tardi",
   "settings.recordingInProgress": "Una registrazione è in corso; il nuovo intervallo si applica alla ripresa.",
+
+  "about.title": "Informazioni",
+  "about.description":
+    "Registra le escursioni con il GPS, importa tracce GPX e KML e pianifica nuovi percorsi scegliendo dei punti sulla mappa.",
+  "about.privacy":
+    "I percorsi sono salvati solo su questo dispositivo. La pianificazione invia i punti al servizio di calcolo del percorso e la ricerca invia la richiesta al servizio di ricerca.",
+  "about.source": "Codice sorgente su GitHub",
+  "about.credits": "Mappe, percorsi e ricerca:",
 
   "recording.backLabel": "Torna ai percorsi (la registrazione continua)",
   "recording.starting": "Avvio…",
