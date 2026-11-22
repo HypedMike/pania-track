@@ -2,6 +2,8 @@
 
 A local-first trail recorder and viewer for Android (and desktop for development). Record hikes with GPS, import GPX/KML tracks, and browse them on a map with distance, duration and elevation stats. All data stays on the device.
 
+Website: https://hypedmike.github.io/pania-track/
+
 ## Features
 
 - **Record** a trail with GPS, including with the screen off (Android foreground service). Choose the sampling interval from 1 s to 60 s.
