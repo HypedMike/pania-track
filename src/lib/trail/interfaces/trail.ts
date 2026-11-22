@@ -1,6 +1,7 @@
 import { GpsCoordinate } from "./gps_coordinate";
 
-export type TrailSource = "recorded" | "imported";
+/** Planned trails are drawn from checkpoints in the planner; they haven't been walked yet. */
+export type TrailSource = "recorded" | "imported" | "planned";
 
 /** How the trail was (or is being) covered. */
 export type TrailActivity = "foot" | "bike";

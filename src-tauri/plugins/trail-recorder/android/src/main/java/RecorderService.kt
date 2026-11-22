@@ -125,7 +125,7 @@ class RecorderService : Service() {
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Recording trail")
-            .setContentText("pania is saving your track. Tap to open.")
+            .setContentText("Pania is saving your track. Tap to open.")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

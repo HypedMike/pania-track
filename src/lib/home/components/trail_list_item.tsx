@@ -6,6 +6,7 @@ import {
   type TrailStats,
 } from "../../../shared/gps/trail_stats";
 import { useT } from "../../../shared/i18n/i18n";
+import SourceBadge from "../../trail/components/source_badge";
 import TrailPreview from "../../trail/components/trail_preview";
 import type { Trail } from "../../trail/interfaces/trail";
 
@@ -28,15 +29,7 @@ function TrailListItem({ trail, stats, onSelect }: TrailListItemProps) {
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="truncate text-base font-semibold">{trail.name}</span>
           <div className="flex items-center gap-2">
-            <span
-              className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                trail.source === "imported"
-                  ? "bg-route-tint text-route-ink"
-                  : "bg-brand-tint text-brand-tint-ink"
-              }`}
-            >
-              {trail.source === "imported" ? t("trail.sourceImported") : t("trail.sourceRecorded")}
-            </span>
+            <SourceBadge source={trail.source} />
             <span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-soft">
               {t(`activity.${trail.activity}`)}
             </span>

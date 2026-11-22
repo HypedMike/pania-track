@@ -19,7 +19,7 @@ function FilterTabs<T extends string>({
 }: FilterTabsProps<T>) {
   const t = useT();
   return (
-    <div className="flex gap-2" role="tablist" aria-label={t("home.filterLabel")}>
+    <div className="-mx-5 flex gap-2 overflow-x-auto px-5" role="tablist" aria-label={t("home.filterLabel")}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -27,7 +27,7 @@ function FilterTabs<T extends string>({
           role="tab"
           aria-selected={selected === tab.id}
           onClick={() => onSelect(tab.id)}
-          className={`h-11 rounded-full px-4 text-sm ${
+          className={`h-11 shrink-0 rounded-full px-4 text-sm whitespace-nowrap ${
             selected === tab.id
               ? "bg-ink font-semibold text-on-ink"
               : "border border-line-strong bg-surface font-medium"

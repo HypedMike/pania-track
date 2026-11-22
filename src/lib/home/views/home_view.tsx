@@ -44,6 +44,8 @@ function HomeView() {
     { id: "all", label: t("home.filterAll"), n: trails.length },
     { id: "recorded", label: t("home.filterRecorded"), n: count("recorded") },
     { id: "imported", label: t("home.filterImported"), n: count("imported") },
+    // Only shown once there is something to filter, so the row fits on a phone.
+    ...(count("planned") > 0 ? [{ id: "planned" as const, label: t("home.filterPlanned"), n: count("planned") }] : []),
   ];
 
   return (
@@ -69,6 +71,7 @@ function HomeView() {
         recordDisabled={recordingStatus !== "idle"}
         onRecord={() => goTo(ROUTES.record)}
         onImport={() => goTo(ROUTES.importTrail)}
+        onPlan={() => goTo(ROUTES.plan)}
       />
 
       {trails.length > 0 && (

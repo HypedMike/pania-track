@@ -1,6 +1,8 @@
 import { createHashRouter } from "react-router";
 import HomeView from "../../lib/home/views/home_view";
 import ImportTrailView from "../../lib/trail/views/import_trail_view";
+import PlanView from "../../lib/plan/views/plan_view";
+import RouteVariantsView from "../../lib/plan/views/route_variants_view";
 import RecordingView from "../../lib/trail/views/recording_view";
 import SaveRecordingView from "../../lib/trail/views/save_recording_view";
 import StatsView from "../../lib/stats/views/stats_view";
@@ -13,6 +15,8 @@ export const router = createHashRouter([
   { path: ROUTES.record, element: <RecordingView /> },
   { path: ROUTES.saveRecording, element: <SaveRecordingView /> },
   { path: ROUTES.importTrail, element: <ImportTrailView /> },
+  { path: ROUTES.plan, element: <PlanView /> },
+  { path: ROUTES.planRoutes, element: <RouteVariantsView /> },
   { path: ROUTES.settings, element: <SettingsView /> },
   { path: ROUTES.stats, element: <StatsView /> },
   { path: ROUTES.trailDetail, element: <TrailDetailView /> },

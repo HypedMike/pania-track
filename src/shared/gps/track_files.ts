@@ -162,7 +162,7 @@ export function buildGpx(trail: Trail): string {
   const waypoints = trail.waypoints.map((w) => `  ${gpxPoint("wpt", w, w.name)}`).join("\n");
   const points = trail.coordinates.map((c) => `      ${gpxPoint("trkpt", c)}`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="pania" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="Pania" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>${esc(trail.name)}</name>${trail.description ? `<desc>${esc(trail.description)}</desc>` : ""}</metadata>
 ${waypoints}
   <trk>

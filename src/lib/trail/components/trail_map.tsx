@@ -11,7 +11,7 @@ import {
 import L, { type LatLngTuple } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { GpsCoordinate } from "../interfaces/gps_coordinate";
-import type { Waypoint } from "../interfaces/trail";
+import type { TrailSource, Waypoint } from "../interfaces/trail";
 import { useColorScheme } from "../../../shared/theme/use_color_scheme";
 
 const DEFAULT_CENTER: LatLngTuple = [41.9028, 12.4964];
@@ -21,9 +21,9 @@ const LIVE_ZOOM = 16;
 const AMBER = "#F59E0B";
 
 // Leaflet writes colours as SVG attributes, where CSS variables don't resolve.
-const PALETTE = {
-  light: { ink: "#16201B", route: "#2F6FDB", brand: "#127A4B", halo: "#FFFFFF" },
-  dark: { ink: "#E8EDE9", route: "#6A9BF0", brand: "#4CC38A", halo: "#0F1512" },
+export const PALETTE = {
+  light: { ink: "#16201B", route: "#2F6FDB", brand: "#127A4B", halo: "#FFFFFF", alt: "#B45309" },
+  dark: { ink: "#E8EDE9", route: "#6A9BF0", brand: "#4CC38A", halo: "#0F1512", alt: "#F59E0B" },
 };
 
 function FitBounds({ positions }: { positions: LatLngTuple[] }) {
@@ -59,8 +59,8 @@ function Follow({
 interface TrailMapProps {
   coordinates: GpsCoordinate[];
   waypoints?: Waypoint[];
-  /** Line colour; imported trails are blue, recorded trails green. */
-  color?: "recorded" | "imported";
+  /** Line colour; imported trails are blue, recorded and planned trails green. */
+  color?: TrailSource;
   /** Fit the whole trail in view. Turn off for live maps, which follow `current` instead. */
   fit?: boolean;
   /** Live position, drawn as a blue dot. */

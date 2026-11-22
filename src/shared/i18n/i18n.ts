@@ -22,7 +22,7 @@ export function currentLocale(): string {
 
 /** Singular/plural count label, e.g. plural("common.trail", 3) → "3 trails". */
 export function plural(
-  base: "common.waypoint" | "common.trail",
+  base: "common.waypoint" | "common.trail" | "plan.checkpoint",
   n: number,
   translateFn: TFunction = t,
 ): string {
