@@ -1,65 +1,14 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pania – local-first trail recorder</title>
-  <meta name="description" content="Pania records hikes with GPS, imports GPX/KML tracks and plans routes. Everything stays on your device." />
-  <link rel="icon" href="logo.png" />
-  <style>
-    :root {
-      --canvas: #f6f7f4; --surface: #fff; --ink: #16201b; --muted: #56615a;
-      --line: #e3e8e1; --brand: #127a4b; --brand-dark: #0d5c38; --tint: #e3f1e9;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root { --canvas: #0f1512; --surface: #18201c; --ink: #e8ede9; --muted: #a3afa7;
-        --line: #26302b; --brand: #1c9b61; --brand-dark: #148050; --tint: #17332533; }
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--canvas); color: var(--ink);
-      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
-    header.hero { padding: 72px 0 48px; text-align: center; }
-    .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 1.5rem; font-weight: 700; color: var(--brand); }
-    .brand img { width: 44px; height: 44px; border-radius: 12px; }
-    h1 { font-size: clamp(2rem, 6vw, 3.2rem); line-height: 1.1; margin: 24px 0 16px; letter-spacing: -0.02em; }
-    .lead { max-width: 560px; margin: 0 auto 32px; color: var(--muted); font-size: 1.1rem; }
-    .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    a.btn { padding: 14px 24px; border-radius: 16px; font-weight: 600; text-decoration: none;
-      background: var(--brand); color: #fff; }
-    a.btn:hover { background: var(--brand-dark); }
-    a.btn.alt { background: transparent; color: var(--ink); border: 1px solid var(--line); }
-    a.btn.alt:hover { background: var(--surface); }
-    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); padding: 24px 0 56px; }
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; }
-    .card h2 { font-size: 1.05rem; margin: 0 0 6px; }
-    .card p { margin: 0; color: var(--muted); font-size: .95rem; }
-    footer { border-top: 1px solid var(--line); padding: 24px 0 40px; text-align: center; color: var(--muted); font-size: .9rem; }
-    footer a { color: var(--brand); }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header class="hero">
-      <span class="brand"><img src="logo.png" alt="" />Pania</span>
-      <h1>Your trails, on your device.</h1>
-      <p class="lead">A local-first trail recorder and viewer. Record hikes with GPS, import tracks, plan routes and browse them on a map. No account, no cloud.</p>
-      <div class="btns">
-        <a class="btn" href="https://github.com/HypedMike/pania-track/releases/latest">Download for Android</a>
-        <a class="btn alt" href="https://github.com/HypedMike/pania-track">View on GitHub</a>
-      </div>
-    </header>
-
-    <section class="grid">
-      <div class="card"><h2>Record</h2><p>GPS recording that keeps going with the screen off. Choose a sampling interval from 1 to 60 seconds.</p></div>
-      <div class="card"><h2>Import &amp; export</h2><p>Open GPX and KML files, including Google Earth tracks, and share any trail as GPX.</p></div>
-      <div class="card"><h2>Plan</h2><p>Plan routes with alternatives and see a steepness profile before you set out.</p></div>
-      <div class="card"><h2>Explore</h2><p>OpenStreetMap-based maps with distance, duration and elevation stats for every trail.</p></div>
-      <div class="card"><h2>Private</h2><p>All data is stored locally in SQLite on your device and never leaves it.</p></div>
-      <div class="card"><h2>Open source</h2><p>Built with Tauri, React and Rust. Source and releases are on GitHub.</p></div>
-    </section>
-
-    <footer>Pania · <a href="https://github.com/HypedMike/pania-track">Source code</a> · <a href="https://github.com/HypedMike/pania-track/releases">All releases</a></footer>
-  </div>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pania – local-first trail recorder</title>
+    <meta name="description" content="Pania records hikes with GPS, imports GPX/KML tracks and plans routes. Everything stays on your device." />
+    <link rel="icon" href="./logo.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
 </html>
