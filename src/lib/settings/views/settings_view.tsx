@@ -1,3 +1,5 @@
+import logo from "../../../assets/icon/logo.png";
+import { openExternal, REPO_URL } from "../../../shared/app_info";
 import { useT } from "../../../shared/i18n/i18n";
 import { LANGUAGES, type Language } from "../../../shared/i18n/translations";
 import { useNavigation } from "../../../shared/router/use_navigation";
@@ -46,6 +48,30 @@ function Segmented<T extends string | number>({
         );
       })}
     </div>
+  );
+}
+
+const CREDITS = [
+  { name: "OpenStreetMap", url: "https://www.openstreetmap.org/copyright" },
+  { name: "BRouter", url: "https://brouter.de" },
+  { name: "Photon", url: "https://photon.komoot.io" },
+];
+
+/** A link that opens in the system browser. */
+function ExternalLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => {
+        e.preventDefault();
+        openExternal(href);
+      }}
+      className={className}
+    >
+      {children}
+    </a>
   );
 }
 
@@ -153,6 +179,45 @@ function SettingsView() {
           />
           <p className="text-sm text-muted">
             {t("settings.version", { version: __APP_VERSION__ })}
+          </p>
+        </section>
+
+        <section aria-labelledby="about-title" className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="" className="size-12 shrink-0 rounded-xl" />
+            <div className="min-w-0">
+              <h2 id="about-title" className="text-sm font-semibold">
+                {t("about.title")}
+              </h2>
+              <p className="text-sm text-muted">
+                pania · {t("settings.version", { version: __APP_VERSION__ })}
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-ink-soft">{t("about.description")}</p>
+          <p className="text-sm text-muted">{t("about.privacy")}</p>
+          <ExternalLink
+            href={REPO_URL}
+            className="flex h-12 items-center justify-center gap-2 rounded-xl border border-line-strong text-[15px] font-semibold text-ink"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 6l-6 6 6 6M16 6l6 6-6 6" />
+            </svg>
+            {t("about.source")}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+            </svg>
+          </ExternalLink>
+          <p className="text-xs text-muted">
+            {t("about.credits")}{" "}
+            {CREDITS.map((c, i) => (
+              <span key={c.name}>
+                {i > 0 && " · "}
+                <ExternalLink href={c.url} className="text-brand-fg underline underline-offset-2">
+                  {c.name}
+                </ExternalLink>
+              </span>
+            ))}
           </p>
         </section>
       </div>
