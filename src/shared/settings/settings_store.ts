@@ -13,9 +13,12 @@ interface SettingsState {
   language: Language;
   /** Seconds between points added to a track while recording. */
   recordIntervalS: number;
+  /** Look for a newer GitHub release when the app opens. */
+  checkForUpdates: boolean;
   setTheme: (theme: ThemeSetting) => void;
   setLanguage: (language: Language) => void;
   setRecordIntervalS: (seconds: number) => void;
+  setCheckForUpdates: (enabled: boolean) => void;
 }
 
 /** Key is also read by the inline script in index.html to avoid a theme flash. */
@@ -27,9 +30,11 @@ export const useSettingsStore = create<SettingsState>()(
       theme: "system",
       language: detectLanguage(),
       recordIntervalS: DEFAULT_RECORD_INTERVAL_S,
+      checkForUpdates: true,
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
       setRecordIntervalS: (recordIntervalS) => set({ recordIntervalS }),
+      setCheckForUpdates: (checkForUpdates) => set({ checkForUpdates }),
     }),
     { name: SETTINGS_STORAGE_KEY, storage: createJSONStorage(() => localStorage) },
   ),

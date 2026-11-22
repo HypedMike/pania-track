@@ -32,6 +32,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:site
+        env:
+          VITE_LATEST_RELEASE_URL: ${{ vars.VITE_LATEST_RELEASE_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

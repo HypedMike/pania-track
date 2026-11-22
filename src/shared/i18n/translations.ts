@@ -55,6 +55,15 @@ export const en = {
   "settings.gpsFrequency": "GPS recording frequency",
   "settings.gpsFrequencyHint":
     "How often a point is added to the track. Shorter intervals give a more detailed trail but use more battery and storage.",
+  "settings.updates": "Check for updates",
+  "settings.updatesHint": "When the app opens, look for a newer version on GitHub and offer to download it.",
+  "settings.on": "On",
+  "settings.off": "Off",
+  "settings.version": "Version {version}",
+  "update.title": "Update available",
+  "update.message": "Pania {version} is available (you have {current}). Download it now?",
+  "update.action": "Update",
+  "update.later": "Later",
   "settings.recordingInProgress": "A recording is in progress; the new interval applies when it resumes.",
 
   // recording
@@ -273,6 +282,15 @@ export const it: Record<TranslationKey, string> = {
   "settings.gpsFrequency": "Frequenza di registrazione GPS",
   "settings.gpsFrequencyHint":
     "Ogni quanto viene aggiunto un punto al percorso. Intervalli più brevi danno un percorso più dettagliato ma consumano più batteria e spazio.",
+  "settings.updates": "Controlla aggiornamenti",
+  "settings.updatesHint": "All'apertura dell'app cerca una versione più recente su GitHub e propone di scaricarla.",
+  "settings.on": "Attivo",
+  "settings.off": "Disattivo",
+  "settings.version": "Versione {version}",
+  "update.title": "Aggiornamento disponibile",
+  "update.message": "Pania {version} è disponibile (hai la {current}). Vuoi scaricarla ora?",
+  "update.action": "Aggiorna",
+  "update.later": "Più tardi",
   "settings.recordingInProgress": "Una registrazione è in corso; il nuovo intervallo si applica alla ripresa.",
 
   "recording.backLabel": "Torna ai percorsi (la registrazione continua)",

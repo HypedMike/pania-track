@@ -88,6 +88,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VITE_LATEST_RELEASE_URL: ${{ vars.VITE_LATEST_RELEASE_URL }}
         run: pnpm tauri android build --apk --target aarch64 --target armv7
 
       - name: Verify signature and version

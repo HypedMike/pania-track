@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { fetchLatestRelease, LATEST_RELEASE_URL, type LatestRelease } from "../src/shared/update/latest_release";
+
 const REPO = "https://github.com/HypedMike/pania-track";
 
 const FEATURES = [
@@ -10,6 +13,19 @@ const FEATURES = [
 ];
 
 function App() {
+  const [release, setRelease] = useState<LatestRelease | null>(null);
+
+  useEffect(() => {
+    if (!LATEST_RELEASE_URL) return;
+    const controller = new AbortController();
+    fetchLatestRelease(LATEST_RELEASE_URL, controller.signal)
+      .then(setRelease)
+      .catch(() => {
+        /* keep the generic link */
+      });
+    return () => controller.abort();
+  }, []);
+
   return (
     <div className="wrap">
       <header className="hero">
@@ -23,9 +39,16 @@ function App() {
           map. No account, no cloud.
         </p>
         <div className="btns">
-          <a className="btn" href={`${REPO}/releases/latest`}>Download for Android</a>
+          <a className="btn" href={release?.downloadUrl ?? `${REPO}/releases/latest`}>
+            {release ? `Download Pania ${release.version} for Android` : "Download for Android"}
+          </a>
           <a className="btn alt" href={REPO}>View on GitHub</a>
         </div>
+        {release && (
+          <p className="version">
+            Latest version: <a href={release.pageUrl}>v{release.version}</a>
+          </p>
+        )}
       </header>
 
       <section className="grid">

@@ -28,3 +28,5 @@
     footer { border-top: 1px solid var(--line); padding: 24px 0 40px; text-align: center; color: var(--muted); font-size: .9rem; }
     footer a { color: var(--brand); }
   
+.version { margin: 16px 0 0; color: var(--muted); font-size: .9rem; }
+.version a { color: var(--brand); }

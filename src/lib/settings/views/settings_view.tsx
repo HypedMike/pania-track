@@ -59,6 +59,8 @@ function SettingsView() {
     setTheme,
     setLanguage,
     setRecordIntervalS,
+    checkForUpdates,
+    setCheckForUpdates,
   } = useSettingsStore();
   const themes: { id: ThemeSetting; label: string }[] = [
     { id: "system", label: t("settings.themeSystem") },
@@ -133,6 +135,25 @@ function SettingsView() {
               {t("settings.recordingInProgress")}
             </p>
           )}
+        </section>
+
+        <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+          <div>
+            <h2 className="text-sm font-semibold">{t("settings.updates")}</h2>
+            <p className="text-sm text-muted">{t("settings.updatesHint")}</p>
+          </div>
+          <Segmented
+            label={t("settings.updates")}
+            options={[
+              { id: "on", label: t("settings.on") },
+              { id: "off", label: t("settings.off") },
+            ]}
+            value={checkForUpdates ? "on" : "off"}
+            onChange={(id) => setCheckForUpdates(id === "on")}
+          />
+          <p className="text-sm text-muted">
+            {t("settings.version", { version: __APP_VERSION__ })}
+          </p>
         </section>
       </div>
     </main>
