@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { TFunction } from "../../../shared/i18n/i18n";
 import type { GpsCoordinate } from "../../trail/interfaces/gps_coordinate";
+import { toast } from "sonner";
 import { planRoutes, type RouteVariant } from "../route_planner";
 
 export interface Checkpoint {
@@ -89,7 +90,9 @@ export const usePlanStore = create<PlanState>((set, get) => {
         set({ status: "ready", variants, selectedId: variants[0]?.id ?? null });
       } catch (e) {
         if (own.signal.aborted) return;
-        set({ status: "error", error: e instanceof Error ? e.message : String(e), variants: [], selectedId: null });
+        const message = e instanceof Error ? e.message : String(e);
+        set({ status: "error", error: message, variants: [], selectedId: null });
+        toast.error(message, { id: message });
       }
     }, DEBOUNCE_MS);
   }

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { searchPlaces, type Place, type PlaceKind } from "../../../shared/geocoding/photon";
 import { useT } from "../../../shared/i18n/i18n";
 import { useSettingsStore } from "../../../shared/settings/settings_store";
+import { toast } from "sonner";
 import type { GpsCoordinate } from "../../trail/interfaces/gps_coordinate";
 
 const DEBOUNCE_MS = 300;
@@ -81,8 +82,10 @@ function PlaceSearch({ near, onSelect, onClear, className }: PlaceSearchProps) {
         setStatus("done");
       } catch (e) {
         if (controller.signal.aborted) return;
-        setError(e instanceof Error ? e.message : String(e));
+        const message = e instanceof Error ? e.message : String(e);
+        setError(message);
         setStatus("error");
+        toast.error(message, { id: message });
       }
     }, DEBOUNCE_MS);
     return () => {

@@ -1,3 +1,4 @@
+import { withDetail } from "../http/error_detail";
 import { t } from "../i18n/i18n";
 import type { GpsCoordinate } from "../../lib/trail/interfaces/gps_coordinate";
 
@@ -54,7 +55,7 @@ function parseSegments(messages: string[][] = []): WaySegment[] {
 function friendlyError(status: number, body: string): Error {
   if (/not mapped|no track found|target island/i.test(body)) return new Error(t("plan.error.noPath"));
   if (/distance|too long|limit/i.test(body)) return new Error(t("plan.error.tooLong"));
-  return new Error(t("plan.error.server", { status }));
+  return new Error(withDetail(t("plan.error.server", { status }), body));
 }
 
 /** Routes through `points` in order. Rejects with a user-facing Error. */

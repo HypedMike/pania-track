@@ -1,3 +1,4 @@
+import { withDetail } from "../http/error_detail";
 import { t } from "../i18n/i18n";
 import type { GpsCoordinate } from "../../lib/trail/interfaces/gps_coordinate";
 import type { Language } from "../i18n/translations";
@@ -69,7 +70,10 @@ export async function searchPlaces(
     if (signal?.aborted) throw e;
     throw new Error(t("search.error.offline"));
   }
-  if (!response.ok) throw new Error(t("search.error.server", { status: response.status }));
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(withDetail(t("search.error.server", { status: response.status }), body));
+  }
 
   const json = (await response.json()) as { features?: PhotonFeature[] };
   return (json.features ?? [])

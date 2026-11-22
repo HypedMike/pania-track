@@ -10,6 +10,7 @@ import { plural, useT } from "../../../shared/i18n/i18n";
 import { ROUTES } from "../../../shared/router/routes";
 import { useNavigation } from "../../../shared/router/use_navigation";
 import type { GpsCoordinate } from "../../trail/interfaces/gps_coordinate";
+import BottomSheet from "../../../shared/ui/bottom_sheet";
 import PlaceSearch from "../components/place_search";
 import PlanMap, {
   checkpointLabel,
@@ -155,6 +156,8 @@ function PlanView() {
   const [notice, setNotice] = useState<string | null>(null);
   const center = useRef<GpsCoordinate | undefined>(undefined);
   const focusKey = useRef(0);
+
+  const [collapsed, setCollapsed] = useState(false);
 
   const moveTo = useCallback((target: Omit<MapFocus, "key">) => {
     setFocus({ ...target, key: ++focusKey.current });
@@ -316,71 +319,71 @@ function PlanView() {
         </button>
       </div>
 
-      <section className="relative z-1000 -mt-7 flex max-h-[60dvh] shrink-0 flex-col gap-2.5 rounded-t-[28px] bg-surface px-5 pt-2.5 pb-[calc(24px+env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgb(22_32_27/0.10)]">
-        <div
-          className="h-1 w-10 self-center rounded-full bg-line-strong"
-          aria-hidden="true"
-        />
-
-        <div
-          className="flex min-h-14 items-center justify-between gap-3"
-          aria-live="polite"
-        >
-          {status === "ready" && route ? (
-            <>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[13px] text-muted">
-                  {t(
-                    loop && checkpoints.length > 1
-                      ? "plan.summaryLoop"
-                      : "plan.summaryOneWay",
-                    {
-                      checkpoints: plural(
-                        "plan.checkpoint",
-                        checkpoints.length,
-                        t,
-                      ),
-                      marked: Math.round(route.analysis.markedShare * 100),
-                    },
-                  )}
-                </span>
-                <span className="text-[15px] text-ink-soft">
-                  <span className="font-display text-2xl font-semibold text-ink">
-                    {formatDistance(route.analysis.distanceM)}
+      <BottomSheet
+        collapsed={collapsed}
+        onCollapsedChange={setCollapsed}
+        handleLabel={t(collapsed ? "plan.sheetShow" : "plan.sheetHide")}
+        summary={
+          <div
+            className="flex min-h-14 items-center justify-between gap-3"
+            aria-live="polite"
+          >
+            {status === "ready" && route ? (
+              <>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[13px] text-muted">
+                    {t(
+                      loop && checkpoints.length > 1
+                        ? "plan.summaryLoop"
+                        : "plan.summaryOneWay",
+                      {
+                        checkpoints: plural(
+                          "plan.checkpoint",
+                          checkpoints.length,
+                          t,
+                        ),
+                        marked: Math.round(route.analysis.markedShare * 100),
+                      },
+                    )}
                   </span>
-                  {` · ${climbAndTime(route.analysis)}`}
-                </span>
-              </div>
-              <DifficultyChip difficulty={route.analysis.difficulty} />
-            </>
-          ) : status === "loading" ? (
-            <>
-              <div
-                className="flex min-w-0 flex-1 flex-col gap-1.5"
-                aria-busy="true"
-                aria-label={t("plan.finding")}
-              >
+                  <span className="text-[15px] text-ink-soft">
+                    <span className="font-display text-2xl font-semibold text-ink">
+                      {formatDistance(route.analysis.distanceM)}
+                    </span>
+                    {` · ${climbAndTime(route.analysis)}`}
+                  </span>
+                </div>
+                <DifficultyChip difficulty={route.analysis.difficulty} />
+              </>
+            ) : status === "loading" ? (
+              <>
+                <div
+                  className="flex min-w-0 flex-1 flex-col gap-1.5"
+                  aria-busy="true"
+                  aria-label={t("plan.finding")}
+                >
+                  <span
+                    className="h-3 w-48 max-w-full rounded bg-line motion-safe:animate-pulse"
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="h-6 w-40 max-w-full rounded bg-line motion-safe:animate-pulse"
+                    aria-hidden="true"
+                  />
+                </div>
                 <span
-                  className="h-3 w-48 max-w-full rounded bg-line motion-safe:animate-pulse"
+                  className="h-6 w-20 shrink-0 rounded-md bg-line motion-safe:animate-pulse"
                   aria-hidden="true"
                 />
-                <span
-                  className="h-6 w-40 max-w-full rounded bg-line motion-safe:animate-pulse"
-                  aria-hidden="true"
-                />
-              </div>
-              <span
-                className="h-6 w-20 shrink-0 rounded-md bg-line motion-safe:animate-pulse"
-                aria-hidden="true"
-              />
-            </>
-          ) : status === "error" ? (
-            <span className="text-[15px] text-danger">{error}</span>
-          ) : (
-            <span className="text-[15px] text-muted">{t("plan.empty")}</span>
-          )}
-        </div>
-
+              </>
+            ) : status === "error" ? (
+              <span className="text-[15px] text-danger">{error}</span>
+            ) : (
+              <span className="text-[15px] text-muted">{t("plan.empty")}</span>
+            )}
+          </div>
+        }
+      >
         {status === "loading" ? (
           <SteepnessProfileSkeleton />
         ) : (
@@ -395,7 +398,7 @@ function PlanView() {
         )}
 
         {checkpoints.length > 0 && (
-          <ol className="flex min-h-0 flex-col overflow-y-auto rounded-[14px] border border-line">
+          <ol className="flex flex-col rounded-[14px] border border-line">
             {checkpoints.map((c, i) => (
               <li
                 key={c.id}
@@ -480,7 +483,7 @@ function PlanView() {
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </button>
-      </section>
+      </BottomSheet>
     </main>
   );
 }

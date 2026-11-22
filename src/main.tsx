@@ -5,6 +5,7 @@ import { router } from "./shared/router/router";
 import { initTheme } from "./shared/theme/theme";
 import { initI18n } from "./shared/i18n/i18n";
 import UpdatePrompt from "./shared/update/update_prompt";
+import Toaster from "./shared/ui/toast/toaster";
 import "./index.css";
 
 initTheme();
@@ -14,5 +15,6 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <RouterProvider router={router} />
     <UpdatePrompt />
+    <Toaster />
   </React.StrictMode>,
 );
