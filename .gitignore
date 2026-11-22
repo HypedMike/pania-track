@@ -26,3 +26,8 @@ dist-ssr
 
 .env.env
 .env.local
+
+# tsc-generated artifacts (would shadow vite.config.ts)
+vite.config.js
+vite.config.d.ts
+*.tsbuildinfo
