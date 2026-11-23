@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useParams } from "react-router";
 import { currentLocale, plural, useT } from "../../../shared/i18n/i18n";
 import { useNavigation } from "../../../shared/router/use_navigation";
-import { ROUTES } from "../../../shared/router/routes";
+import { ROUTES, tourPath } from "../../../shared/router/routes";
+import { captureLock } from "../../../shared/gps/capture_lock";
+import { useTourStore } from "../../tour/tour_store";
+import { toast } from "sonner";
 import { exportGpx, shareGpx } from "../../../shared/gps/track_files";
 import {
   computeStats,
@@ -45,6 +48,7 @@ function TrailDetailView() {
   const load = useTrailStore((state) => state.load);
   const updateTrail = useTrailStore((state) => state.updateTrail);
   const deleteTrail = useTrailStore((state) => state.deleteTrail);
+  const touringHere = useTourStore((state) => state.status === "active" && state.trailId === id);
   const stats = useMemo(
     () => computeStats(trail?.coordinates ?? []),
     [trail?.coordinates],
@@ -98,6 +102,14 @@ function TrailDetailView() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function startTour() {
+    if (captureLock.heldBy() === "recording") {
+      toast.error(t("error.recordingActive"));
+      return;
+    }
+    goTo(tourPath(id));
   }
 
   async function handleDelete() {
@@ -270,6 +282,19 @@ function TrailDetailView() {
               color={trail.source}
             />
           </div>
+        )}
+
+        {!editing && pointCount > 1 && (
+          <button
+            type="button"
+            onClick={startTour}
+            className="flex h-[54px] items-center justify-center gap-2 rounded-2xl bg-brand text-base font-semibold text-white active:bg-brand-dark"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7 5l12 7-12 7z" />
+            </svg>
+            {touringHere ? t("tour.resume") : t("tour.start")}
+          </button>
         )}
 
         {pointCount > 1 && (

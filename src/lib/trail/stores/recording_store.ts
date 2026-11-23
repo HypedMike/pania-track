@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { t } from "../../../shared/i18n/i18n";
 import { backgroundRecorder } from "../../../shared/gps/background_recorder";
+import { captureLock } from "../../../shared/gps/capture_lock";
 import { gpsService, type GpsFix } from "../../../shared/gps/gps_service";
 import { recordIntervalMs } from "../../../shared/settings/settings_store";
 import type { GpsCoordinate } from "../interfaces/gps_coordinate";
@@ -139,6 +141,10 @@ export const useRecordingStore = create<RecordingState>()(
 
         start: async () => {
           if (get().status !== "idle" || starting) return;
+          if (!captureLock.claim("recording")) {
+            set({ error: t("error.tourActive") });
+            return;
+          }
           starting = true;
           set({ error: null });
           try {
@@ -150,6 +156,7 @@ export const useRecordingStore = create<RecordingState>()(
             await beginCapture();
           } catch (e) {
             stopTimer();
+            captureLock.release("recording");
             set({ ...INITIAL, error: message(e) });
           } finally {
             starting = false;
@@ -189,6 +196,7 @@ export const useRecordingStore = create<RecordingState>()(
 
         discard: async () => {
           stopTimer();
+          captureLock.release("recording");
           set({ ...INITIAL });
           if (backgroundRecorder.supported) {
             await backgroundRecorder.stop().catch(() => undefined);
@@ -203,6 +211,7 @@ export const useRecordingStore = create<RecordingState>()(
 
         reattach: async () => {
           const { status } = get();
+          captureLock.claim("recording");
           try {
             if (status === "recording") await beginCapture();
             // Collect points the service recorded before it was paused.

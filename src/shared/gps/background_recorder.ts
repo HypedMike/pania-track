@@ -15,6 +15,17 @@ interface TakeResult {
   error: string | null;
 }
 
+/** What the native service needs to alert on its own when the person leaves a trail. */
+export interface OffTrackGuard {
+  /** Farther than this from the trail counts as off it. */
+  thresholdM: number;
+  /** The trail as [latitude, longitude] pairs. */
+  track: [number, number][];
+  /** Notification texts, already translated; `{m}` in `text` becomes the distance. */
+  title: string;
+  text: string;
+}
+
 function toFix(p: NativePoint): GpsFix {
   return {
     latitude: p.latitude,
@@ -33,10 +44,16 @@ export const backgroundRecorder = {
   /** Only Android has the native service; elsewhere the app polls the position itself. */
   supported: /android/i.test(navigator.userAgent),
 
-  async start(intervalMs: number): Promise<void> {
+  /**
+   * Starts the service. With `offTrackGuard` it also watches the fixes against a trail and raises
+   * a notification by itself when the person strays, which keeps working with the screen off.
+   */
+  async start(intervalMs: number, offTrackGuard?: OffTrackGuard): Promise<void> {
     // The notification permission only affects whether the status notification is visible.
     await invoke("plugin:trail-recorder|request_permissions").catch(() => undefined);
-    await invoke("plugin:trail-recorder|start", { options: { intervalMs } });
+    await invoke("plugin:trail-recorder|start", {
+      options: { intervalMs, guardJson: offTrackGuard ? JSON.stringify(offTrackGuard) : null },
+    });
   },
 
   async stop(): Promise<void> {

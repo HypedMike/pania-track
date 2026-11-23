@@ -8,16 +8,23 @@ export type ThemeSetting = "system" | "light" | "dark";
 export const RECORD_INTERVALS_S = [1, 2, 5, 10, 30, 60] as const;
 export const DEFAULT_RECORD_INTERVAL_S = 5;
 
+/** Selectable distances from the trail, in meters, beyond which a tour raises an off-track alert. */
+export const OFF_TRACK_DISTANCES_M = [25, 50, 100, 200] as const;
+export const DEFAULT_OFF_TRACK_M = 50;
+
 interface SettingsState {
   theme: ThemeSetting;
   language: Language;
   /** Seconds between points added to a track while recording. */
   recordIntervalS: number;
+  /** How far from the trail, in meters, a tour lets you stray before alerting. */
+  offTrackM: number;
   /** Look for a newer GitHub release when the app opens. */
   checkForUpdates: boolean;
   setTheme: (theme: ThemeSetting) => void;
   setLanguage: (language: Language) => void;
   setRecordIntervalS: (seconds: number) => void;
+  setOffTrackM: (meters: number) => void;
   setCheckForUpdates: (enabled: boolean) => void;
 }
 
@@ -30,10 +37,12 @@ export const useSettingsStore = create<SettingsState>()(
       theme: "system",
       language: detectLanguage(),
       recordIntervalS: DEFAULT_RECORD_INTERVAL_S,
+      offTrackM: DEFAULT_OFF_TRACK_M,
       checkForUpdates: true,
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
       setRecordIntervalS: (recordIntervalS) => set({ recordIntervalS }),
+      setOffTrackM: (offTrackM) => set({ offTrackM }),
       setCheckForUpdates: (checkForUpdates) => set({ checkForUpdates }),
     }),
     { name: SETTINGS_STORAGE_KEY, storage: createJSONStorage(() => localStorage) },

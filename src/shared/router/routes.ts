@@ -14,6 +14,7 @@ export const ROUTES = {
   exploreTrail: "/explore/:eventId",
   stats: "/stats",
   trailDetail: "/trails/:id",
+  tour: "/trails/:id/tour",
 } as const;
 
 export type AppRoute =
@@ -24,3 +25,5 @@ export type AppRoute =
 export const trailDetailPath = (id: string): AppRoute => `/trails/${id}`;
 
 export const exploreTrailPath = (eventId: string): AppRoute => `/explore/${eventId}`;
+
+export const tourPath = (trailId: string): AppRoute => `/trails/${trailId}/tour`;

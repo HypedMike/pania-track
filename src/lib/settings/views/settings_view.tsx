@@ -5,12 +5,14 @@ import { LANGUAGES, type Language } from "../../../shared/i18n/translations";
 import { ROUTES } from "../../../shared/router/routes";
 import { useNavigation } from "../../../shared/router/use_navigation";
 import {
+  OFF_TRACK_DISTANCES_M,
   RECORD_INTERVALS_S,
   useSettingsStore,
   type ThemeSetting,
 } from "../../../shared/settings/settings_store";
 import PageHeader from "../../../shared/ui/layout/page_header";
 import { useRecordingStore } from "../../trail/stores/recording_store";
+import { useTourStore } from "../../tour/tour_store";
 
 function intervalLabel(seconds: number): string {
   return seconds < 60 ? `${seconds} s` : `${seconds / 60} min`;
@@ -56,6 +58,7 @@ const CREDITS = [
   { name: "OpenStreetMap", url: "https://www.openstreetmap.org/copyright" },
   { name: "BRouter", url: "https://brouter.de" },
   { name: "Photon", url: "https://photon.komoot.io" },
+  { name: "Open-Meteo", url: "https://open-meteo.com" },
 ];
 
 /** A link that opens in the system browser. */
@@ -83,6 +86,8 @@ function SettingsView() {
     theme,
     language,
     recordIntervalS,
+    offTrackM,
+    setOffTrackM,
     setTheme,
     setLanguage,
     setRecordIntervalS,
@@ -95,6 +100,7 @@ function SettingsView() {
     { id: "dark", label: t("settings.themeDark") },
   ];
   const recording = useRecordingStore((s) => s.status === "recording");
+  const touring = useTourStore((s) => s.status === "active");
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col">
@@ -162,6 +168,20 @@ function SettingsView() {
               {t("settings.recordingInProgress")}
             </p>
           )}
+        </section>
+
+        <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+          <div>
+            <h2 className="text-sm font-semibold">{t("settings.offTrack")}</h2>
+            <p className="text-sm text-muted">{t("settings.offTrackHint")}</p>
+          </div>
+          <Segmented
+            label={t("settings.offTrack")}
+            options={OFF_TRACK_DISTANCES_M.map((m) => ({ id: m, label: `${m} m` }))}
+            value={offTrackM}
+            onChange={setOffTrackM}
+          />
+          {touring && <p className="text-sm text-muted">{t("settings.tourInProgress")}</p>}
         </section>
 
         <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">

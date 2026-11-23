@@ -63,6 +63,10 @@ interface TrailMapProps {
   color?: TrailSource;
   /** Fit the whole trail in view. Turn off for live maps, which follow `current` instead. */
   fit?: boolean;
+  /** The part of the trail already covered, drawn over it in a muted colour (tours). */
+  completed?: GpsCoordinate[];
+  /** A dashed line, e.g. from the live position back to the trail (tours). */
+  guideLine?: GpsCoordinate[];
   /** Live position, drawn as a blue dot. */
   current?: GpsCoordinate | null;
   follow?: boolean;
@@ -77,13 +81,15 @@ function TrailMap({
   waypoints = [],
   color = "recorded",
   fit = true,
+  completed = [],
+  guideLine = [],
   current,
   follow = false,
   followKey = 0,
   onUserMove,
   className,
 }: TrailMapProps) {
-  const { ink: INK, route: ROUTE, brand: BRAND, halo: HALO } = PALETTE[useColorScheme()];
+  const { ink: INK, route: ROUTE, brand: BRAND, halo: HALO, alt: ALT } = PALETTE[useColorScheme()];
   const positions = useMemo<LatLngTuple[]>(
     () => coordinates.map((c) => [c.latitude, c.longitude]),
     [coordinates],
@@ -108,6 +114,18 @@ function TrailMap({
       />
       {positions.length > 1 && (
         <Polyline positions={positions} pathOptions={{ color: line, weight: 5, lineCap: "round", lineJoin: "round" }} />
+      )}
+      {completed.length > 1 && (
+        <Polyline
+          positions={completed.map((c): LatLngTuple => [c.latitude, c.longitude])}
+          pathOptions={{ color: INK, opacity: 0.4, weight: 5, lineCap: "round", lineJoin: "round" }}
+        />
+      )}
+      {guideLine.length > 1 && (
+        <Polyline
+          positions={guideLine.map((c): LatLngTuple => [c.latitude, c.longitude])}
+          pathOptions={{ color: ALT, weight: 4, dashArray: "2 9", lineCap: "round" }}
+        />
       )}
       {start && (
         <CircleMarker center={start} radius={7} pathOptions={{ color: INK, weight: 3, fillColor: HALO, fillOpacity: 1 }} />

@@ -33,6 +33,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct StartOptions {
     /// Desired time between points, in milliseconds.
     pub interval_ms: u64,
+    /// Turns on off-track alerts for a tour: a JSON document with the trail to follow, how far
+    /// from it is too far, and the notification texts. The service raises the alert itself, so
+    /// it works with the screen off. See `OffTrackGuard.kt` for the format.
+    #[serde(default)]
+    pub guard_json: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

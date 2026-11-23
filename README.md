@@ -7,6 +7,7 @@ Website: https://hypedmike.github.io/pania-track/
 ## Features
 
 - **Record** a trail with GPS, including with the screen off (Android foreground service). Choose the sampling interval from 1 s to 60 s.
+- **Trail tour**: press play on a trail's detail page and the app follows your position: where to go next (turns, next waypoint), distance left, estimated arrival time from your actual pace, and a progress bar. Optionally set a time to arrive by. Warnings appear for being late, arriving after sunset (computed on the device), thunderstorms, rain, snow, strong wind, heat, frost and lost GPS. Leaving the trail by more than a chosen distance (25–200 m, default 50 m) sends a notification, also with the screen off on Android. Weather comes from [Open-Meteo](https://open-meteo.com) (the only data sent is the coordinates of the middle of the remaining trail, no key or account). A tour and a recording cannot run at the same time.
 - **Import** tracks and waypoints from GPX and KML files (including Google Earth `gx:Track`).
 - **Export / share** any trail as GPX.
 - **Browse** trails filtered by source (recorded / imported), with a map preview per trail.
@@ -33,17 +34,19 @@ Website: https://hypedmike.github.io/pania-track/
 src/
   lib/                    Feature modules (views, components, stores, repositories)
     home/                 Trail list
-    settings/             Theme and recording interval
+    settings/             Theme, recording interval, off-track alert distance
+    tour/                 Trail tour: progress along the trail, arrival time, warnings, off-track alerts
     trail/                Recording, saving, importing, detail view, map, elevation
   shared/                 Cross-feature code
     database/             SQLite connection
     gps/                  GPS service, background recorder, GPX/KML parsing, stats
+    weather/              Open-Meteo hourly forecast client
     router/               Routes and navigation hook
     settings/ theme/      Settings store and color scheme handling
 src-tauri/
   src/                    Rust app entry point
   migrations/             SQLite schema (trails, trail_coordinates, trail_waypoints)
-  plugins/trail-recorder/ Native plugin: Android foreground service that buffers GPS points
+  plugins/trail-recorder/ Native plugin: Android foreground service that buffers GPS points and, during a tour, raises off-track notifications
   capabilities/           Tauri permission sets (desktop and mobile)
   gen/android/            Generated Android project
 scripts/set-version.mjs   Syncs a version across package.json, Cargo.toml and tauri.conf.json
