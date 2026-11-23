@@ -1,0 +1,3 @@
+[default]
+description = "Allows checking the install permission and installing updates from the project's releases."
+permissions = ["allow-can-install", "allow-open-install-settings", "allow-download-and-install"]

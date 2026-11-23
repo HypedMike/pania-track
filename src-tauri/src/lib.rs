@@ -25,6 +25,9 @@ pub fn run() {
     // Only Rust code (src/secrets) talks to it; the webview is not granted its permissions.
     let builder = builder.plugin(tauri_plugin_secret_store::init());
 
+    // In-app updates: downloads a release APK and opens the Android installer on it.
+    let builder = builder.plugin(tauri_plugin_app_installer::init());
+
     builder
         .invoke_handler(tauri::generate_handler![
             tracks::simplify::simplify_track,

@@ -53,4 +53,5 @@ jobs:
       - name: Build
         run: cargo build --locked
       - name: Test
-        run: cargo test --locked
+        # The app crate plus the plugin crates whose Rust code has its own unit tests.
+        run: cargo test --locked -p pania -p tauri-plugin-app-installer
