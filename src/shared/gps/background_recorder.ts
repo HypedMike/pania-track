@@ -81,6 +81,21 @@ export const backgroundRecorder = {
     await invoke("plugin:trail-recorder|stop");
   },
 
+  /** Whether Live Updates exist on this phone (Android 16+) and are turned on for the app. */
+  async liveUpdateStatus(): Promise<{ supported: boolean; enabled: boolean }> {
+    if (!this.supported) return { supported: false, enabled: false };
+    try {
+      return await invoke("plugin:trail-recorder|live_update_status");
+    } catch {
+      return { supported: false, enabled: false };
+    }
+  },
+
+  /** Opens the system screen where the person can turn Live Updates on. */
+  async openLiveUpdateSettings(): Promise<void> {
+    await invoke("plugin:trail-recorder|open_live_update_settings");
+  },
+
   /** Returns, and removes from the native buffer, the points recorded since the last call. */
   async takePoints(): Promise<{ points: GpsFix[]; running: boolean; error: string | null }> {
     const result = await invoke<TakeResult>("plugin:trail-recorder|take_points");

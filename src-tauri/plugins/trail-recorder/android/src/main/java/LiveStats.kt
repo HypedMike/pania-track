@@ -30,14 +30,6 @@ object LiveStats {
     private const val KEY = "snapshot"
     /** A snapshot not updated for this long belongs to a service that died without cleaning up. */
     const val STALE_MS = 10 * 60_000L
-    private const val EARTH_RADIUS_M = 6_371_000.0
-    /** Altitude changes below this are GPS noise (same rule as the app's trail stats). */
-    private const val ELEVATION_NOISE_M = 3.0
-    /** Steps shorter than this are GPS jitter while standing still. */
-    private const val MIN_STEP_M = 2.0
-    private const val MAX_ACCURACY_M = 50f
-    private const val SPEED_WINDOW_MS = 10 * 60_000L
-    private const val MIN_SPEED_SPAN_MS = 60_000L
 
     data class Snapshot(
         /** "recording" or "tour". */
@@ -92,7 +84,55 @@ object LiveStats {
         }
     }
 
-    // Working state of the running session. Only the service touches it.
+    private val session = LiveSession()
+
+    /** Starts a session. Returns the first snapshot (nothing recorded yet). */
+    @Synchronized
+    fun begin(context: Context, liveJson: String?, guard: OffTrackGuard?): Snapshot =
+        save(context, session.begin(liveJson, guard, System.currentTimeMillis()))
+
+    /** Takes in one GPS fix and returns the updated snapshot. */
+    @Synchronized
+    fun onFix(context: Context, latitude: Double, longitude: Double, altitude: Double?, accuracy: Float?, timeMs: Long): Snapshot =
+        save(context, session.onFix(latitude, longitude, altitude, accuracy, timeMs, System.currentTimeMillis()))
+
+    /** Ends the session; widgets go back to their idle state. */
+    @Synchronized
+    fun end(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply()
+    }
+
+    /** The current state, or null when nothing is being recorded or followed. */
+    fun read(context: Context): Snapshot? {
+        val json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null) ?: return null
+        val snapshot = runCatching { Snapshot.fromJson(json) }.getOrNull() ?: return null
+        return if (System.currentTimeMillis() - snapshot.updatedAtMs > STALE_MS) null else snapshot
+    }
+
+    private fun save(context: Context, snapshot: Snapshot): Snapshot {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, snapshot.toJson()).apply()
+        return snapshot
+    }
+}
+
+/**
+ * The numbers of one recording or tour session, computed from GPS fixes. No Android types, so it
+ * is unit tested on the JVM; [LiveStats] adds the persistence. Times are passed in, never read here.
+ */
+class LiveSession {
+    private companion object {
+        const val EARTH_RADIUS_M = 6_371_000.0
+        /** Altitude changes below this are GPS noise (same rule as the app's trail stats). */
+        const val ELEVATION_NOISE_M = 3.0
+        /** Steps shorter than this are GPS jitter while standing still. */
+        const val MIN_STEP_M = 2.0
+        const val MAX_ACCURACY_M = 50f
+        const val SPEED_WINDOW_MS = 10 * 60_000L
+        const val MIN_SPEED_SPAN_MS = 60_000L
+        /** Slower than this (m/s) counts as standing still: no arrival time. */
+        const val MIN_SPEED_MS = 0.1
+    }
+
     private var mode = "recording"
     private var title = ""
     private var labels = JSONObject()
@@ -109,9 +149,7 @@ object LiveStats {
     private var offTrack = false
     private val progressSamples = ArrayDeque<Pair<Long, Double>>()
 
-    /** Starts a session. Returns the first snapshot (nothing recorded yet). */
-    @Synchronized
-    fun begin(context: Context, liveJson: String?, guard: OffTrackGuard?): Snapshot {
+    fun begin(liveJson: String?, guard: OffTrackGuard?, nowMs: Long): LiveStats.Snapshot {
         val info = runCatching { JSONObject(liveJson ?: "") }.getOrNull() ?: JSONObject()
         this.guard = guard
         mode = if (guard != null) "tour" else info.optString("mode", "recording")
@@ -119,7 +157,7 @@ object LiveStats {
         labels = info.optJSONObject("labels") ?: JSONObject()
         distanceM = info.optDouble("baseDistanceM", 0.0)
         ascentM = info.optDouble("baseAscentM", 0.0)
-        startedAtMs = System.currentTimeMillis() - info.optLong("baseElapsedMs", 0L)
+        startedAtMs = nowMs - info.optLong("baseElapsedMs", 0L)
         lastLat = null
         lastLon = null
         refAltitude = null
@@ -133,12 +171,10 @@ object LiveStats {
             progressPct = -1
         }
         etaMs = -1L
-        return save(context)
+        return snapshot(nowMs)
     }
 
-    /** Takes in one GPS fix and returns the updated snapshot. */
-    @Synchronized
-    fun onFix(context: Context, latitude: Double, longitude: Double, altitude: Double?, accuracy: Float?, timeMs: Long): Snapshot {
+    fun onFix(latitude: Double, longitude: Double, altitude: Double?, accuracy: Float?, timeMs: Long, nowMs: Long): LiveStats.Snapshot {
         val accurate = accuracy == null || accuracy <= MAX_ACCURACY_M
         if (accurate) {
             val la = lastLat
@@ -181,52 +217,34 @@ object LiveStats {
                     progressSamples.removeFirst()
                 }
             }
-            etaMs = estimateArrival(remainingM)
+            etaMs = estimateArrival(remainingM, nowMs)
         }
-        return save(context)
+        return snapshot(nowMs)
     }
 
-    private fun estimateArrival(remaining: Double): Long {
+    private fun estimateArrival(remaining: Double, nowMs: Long): Long {
         val first = progressSamples.firstOrNull() ?: return -1L
         val last = progressSamples.last()
         val span = last.first - first.first
         if (span < MIN_SPEED_SPAN_MS) return -1L
         val speed = (last.second - first.second) / (span / 1000.0)
-        if (speed < 0.1) return -1L
-        return System.currentTimeMillis() + (remaining / speed * 1000).toLong()
+        if (speed < MIN_SPEED_MS) return -1L
+        return nowMs + (remaining / speed * 1000).toLong()
     }
 
-    /** Ends the session; widgets go back to their idle state. */
-    @Synchronized
-    fun end(context: Context) {
-        guard = null
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply()
-    }
-
-    /** The current state, or null when nothing is being recorded or followed. */
-    fun read(context: Context): Snapshot? {
-        val json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null) ?: return null
-        val snapshot = runCatching { Snapshot.fromJson(json) }.getOrNull() ?: return null
-        return if (System.currentTimeMillis() - snapshot.updatedAtMs > STALE_MS) null else snapshot
-    }
-
-    private fun save(context: Context): Snapshot {
-        val snapshot = Snapshot(
-            mode = mode,
-            title = title,
-            labels = labels,
-            distanceM = distanceM,
-            ascentM = ascentM,
-            startedAtMs = startedAtMs,
-            remainingM = remainingM,
-            progressPct = progressPct,
-            etaMs = etaMs,
-            offTrack = offTrack,
-            updatedAtMs = System.currentTimeMillis(),
-        )
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, snapshot.toJson()).apply()
-        return snapshot
-    }
+    private fun snapshot(nowMs: Long) = LiveStats.Snapshot(
+        mode = mode,
+        title = title,
+        labels = labels,
+        distanceM = distanceM,
+        ascentM = ascentM,
+        startedAtMs = startedAtMs,
+        remainingM = remainingM,
+        progressPct = progressPct,
+        etaMs = etaMs,
+        offTrack = offTrack,
+        updatedAtMs = nowMs,
+    )
 
     private fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val dLat = Math.toRadians(lat2 - lat1)

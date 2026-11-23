@@ -137,7 +137,7 @@ class OffTrackGuard private constructor(
             null
         }
 
-        private fun parse(json: String): OffTrackGuard {
+        internal fun parse(json: String): OffTrackGuard {
             val o = JSONObject(json)
             val track = o.getJSONArray("track")
             require(track.length() > 0) { "Empty trail" }
