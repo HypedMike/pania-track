@@ -11,20 +11,75 @@ export interface SimplifyOptions {
 }
 
 /**
+ * How much a track was reduced and how faithful the result is to the original. Errors are the
+ * sideways distance from every original point to the simplified line.
+ */
+export interface SimplifyReport {
+  originalPoints: number;
+  keptPoints: number;
+  /** Share of the original points removed, 0–100. */
+  removedPct: number;
+  toleranceM: number;
+  altitudeToleranceM: number;
+  minStepM: number;
+  maxErrorM: number;
+  meanErrorM: number;
+  p95ErrorM: number;
+  originalDistanceM: number;
+  simplifiedDistanceM: number;
+  /** Elevation gain, or null when the track has no altitude. */
+  originalGainM: number | null;
+  simplifiedGainM: number | null;
+  maxAltitudeErrorM: number | null;
+}
+
+export interface SimplifiedTrack {
+  /** The original point objects that were kept, in order; timestamps are untouched. */
+  coordinates: GpsCoordinate[];
+  report: SimplifyReport;
+}
+
+/**
  * Reduces a GPS track to the points that define its shape. The work is done by the Rust
- * backend (`src-tauri/src/simplify.rs`); this returns the original point objects that were kept,
- * in order, so timestamps are untouched. First and last points are always kept.
+ * backend (`src-tauri/src/simplify.rs`). First and last points are always kept.
  *
  * Every dropped point is within `toleranceM + minStepM` of the simplified line.
  */
 export async function simplifyTrack(
   coords: GpsCoordinate[],
   options?: SimplifyOptions,
-): Promise<GpsCoordinate[]> {
+): Promise<SimplifiedTrack> {
   // Only what the algorithm reads crosses the IPC boundary; timestamps stay here.
   const points = coords.map(({ latitude, longitude, altitude }) => ({ latitude, longitude, altitude }));
-  const kept = await invoke<number[]>("simplify_track", { points, options });
-  return kept.map((i) => coords[i]);
+  const { kept, report } = await invoke<{ kept: number[]; report: SimplifyReport }>("simplify_track", {
+    points,
+    options,
+  });
+  return { coordinates: kept.map((i) => coords[i]), report };
+}
+
+/**
+ * Nostr tags describing the simplification, so anyone reading a published trail can judge it.
+ * Values are strings, as Nostr requires. `distance`/`gain` are the real track's figures;
+ * the `simplified_*` ones are what the published line measures.
+ */
+export function simplificationTags(r: SimplifyReport): string[][] {
+  const tags: string[][] = [
+    ["original_points", String(r.originalPoints)],
+    ["points", String(r.keptPoints)],
+    ["removed_pct", String(r.removedPct)],
+    ["tolerance_m", String(r.toleranceM)],
+    ["error_max_m", String(r.maxErrorM)],
+    ["error_p95_m", String(r.p95ErrorM)],
+    ["error_mean_m", String(r.meanErrorM)],
+    ["distance_m", String(r.originalDistanceM)],
+    ["simplified_distance_m", String(r.simplifiedDistanceM)],
+  ];
+  if (r.originalGainM !== null && r.simplifiedGainM !== null) {
+    tags.push(["gain_m", String(r.originalGainM)], ["simplified_gain_m", String(r.simplifiedGainM)]);
+  }
+  if (r.maxAltitudeErrorM !== null) tags.push(["error_alt_max_m", String(r.maxAltitudeErrorM)]);
+  return tags;
 }
 
 /**

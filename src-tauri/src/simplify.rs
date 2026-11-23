@@ -8,7 +8,7 @@
 //! `min_step_m` from a point that is itself within `tolerance_m`). The result is a list of indices into the input, so
 //! the caller keeps its original points (timestamps included) untouched.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const EARTH_RADIUS_M: f64 = 6_371_000.0;
 
@@ -58,6 +58,71 @@ impl Options {
     }
 }
 
+/// How much a track was reduced and how faithful the result is to the original.
+///
+/// Errors are the sideways distance, in meters, from every original point to the simplified
+/// line, so they describe the whole track and not just the dropped points.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Report {
+    /// Original points that had usable coordinates.
+    pub original_points: usize,
+    pub kept_points: usize,
+    /// Share of the original points that were removed, 0–100.
+    pub removed_pct: f64,
+    /// Tolerances the simplification ran with.
+    pub tolerance_m: f64,
+    pub altitude_tolerance_m: f64,
+    pub min_step_m: f64,
+    /// Farthest any original point is from the simplified line.
+    pub max_error_m: f64,
+    pub mean_error_m: f64,
+    pub p95_error_m: f64,
+    pub original_distance_m: f64,
+    pub simplified_distance_m: f64,
+    /// Elevation gain with the app's 3 m noise filter, `None` when the track has no altitude.
+    pub original_gain_m: Option<f64>,
+    pub simplified_gain_m: Option<f64>,
+    /// Largest altitude difference between an original point and the line at the same spot.
+    pub max_altitude_error_m: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Simplified {
+    /// Indices into the input of the points to keep, ascending.
+    pub kept: Vec<usize>,
+    pub report: Report,
+}
+
+/// Altitude changes below this are GPS noise when summing elevation gain (same as the app's stats).
+const ELEVATION_NOISE_M: f64 = 3.0;
+
+fn haversine_m(a: &Point, b: &Point) -> f64 {
+    let (d_lat, d_lon) = ((b.latitude - a.latitude).to_radians(), (b.longitude - a.longitude).to_radians());
+    let h = (d_lat / 2.0).sin().powi(2)
+        + a.latitude.to_radians().cos() * b.latitude.to_radians().cos() * (d_lon / 2.0).sin().powi(2);
+    2.0 * EARTH_RADIUS_M * h.sqrt().asin()
+}
+
+fn distance_m(points: &[&Point]) -> f64 {
+    points.windows(2).map(|w| haversine_m(w[0], w[1])).sum()
+}
+
+fn gain_m(points: &[&Point]) -> Option<f64> {
+    let mut alts = points.iter().filter_map(|p| p.altitude.filter(|a| a.is_finite()));
+    let mut reference = alts.next()?;
+    let mut gain = 0.0;
+    for alt in alts {
+        if alt - reference >= ELEVATION_NOISE_M {
+            gain += alt - reference;
+            reference = alt;
+        } else if reference - alt >= ELEVATION_NOISE_M {
+            reference = alt;
+        }
+    }
+    Some(gain)
+}
+
 /// Point in a local flat projection: meters east/north of the track's first point.
 #[derive(Clone, Copy)]
 struct Flat {
@@ -100,18 +165,31 @@ fn deviation(p: Flat, a: Flat, b: Flat, tol_m: f64, tol_alt_m: f64) -> f64 {
     side.max(vertical)
 }
 
-/// Indices (into `points`, ascending) of the points to keep.
+/// Indices (into `points`, ascending) of the points to keep, see [`simplify_with_report`].
 ///
 /// Points with a non-finite latitude or longitude are never kept. The first and last valid
 /// points are always kept.
 pub fn simplify(points: &[Point], options: Options) -> Vec<usize> {
+    simplify_with_report(points, options).kept
+}
+
+/// Simplifies the track and measures the result against the original.
+pub fn simplify_with_report(points: &[Point], options: Options) -> Simplified {
     let opts = options.sanitized();
     let valid: Vec<usize> = (0..points.len())
         .filter(|&i| points[i].latitude.is_finite() && points[i].longitude.is_finite())
         .collect();
-    if valid.len() <= 2 {
-        return valid;
-    }
+    let kept_valid = if valid.len() <= 2 {
+        (0..valid.len()).collect()
+    } else {
+        keep_positions(points, &valid, &opts)
+    };
+    let report = build_report(points, &valid, &kept_valid, &opts);
+    Simplified { kept: kept_valid.iter().map(|&k| valid[k]).collect(), report }
+}
+
+/// Positions (into `valid`) of the points to keep. Needs at least 3 valid points.
+fn keep_positions(points: &[Point], valid: &[usize], opts: &Options) -> Vec<usize> {
 
     // Drop jitter while standing still. Always keep the first and last point.
     let refs: Vec<&Point> = valid.iter().map(|&i| &points[i]).collect();
@@ -126,7 +204,7 @@ pub fn simplify(points: &[Point], options: Options) -> Vec<usize> {
     }
     kept.push(flat.len() - 1);
     if kept.len() <= 2 {
-        return kept.into_iter().map(|i| valid[i]).collect();
+        return kept;
     }
     let pts: Vec<Flat> = kept.iter().map(|&i| flat[i]).collect();
 
@@ -152,13 +230,59 @@ pub fn simplify(points: &[Point], options: Options) -> Vec<usize> {
         }
     }
 
-    (0..n).filter(|&i| keep[i]).map(|i| valid[kept[i]]).collect()
+    (0..n).filter(|&i| keep[i]).map(|i| kept[i]).collect()
 }
 
-/// Tauri command: indices of the points to keep, see [`simplify`].
+fn build_report(points: &[Point], valid: &[usize], kept: &[usize], opts: &Options) -> Report {
+    let original: Vec<&Point> = valid.iter().map(|&i| &points[i]).collect();
+    let simplified: Vec<&Point> = kept.iter().map(|&k| original[k]).collect();
+    let n = original.len();
+
+    let (mut errors, mut max_alt_error) = (Vec::with_capacity(n), None::<f64>);
+    if n > 0 {
+        let flat = project(&original);
+        for w in kept.windows(2) {
+            // End-exclusive: the next segment (or the line below) accounts for the shared point.
+            for i in w[0]..w[1] {
+                errors.push(deviation(flat[i], flat[w[0]], flat[w[1]], 1.0, 1e12));
+                let (a, b, p) = (flat[w[0]], flat[w[1]], flat[i]);
+                if !(a.z.is_nan() || b.z.is_nan() || p.z.is_nan()) {
+                    let len2 = (b.x - a.x).powi(2) + (b.y - a.y).powi(2);
+                    let t = if len2 == 0.0 { 0.0 } else { (((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / len2).clamp(0.0, 1.0) };
+                    let e = (p.z - (a.z + t * (b.z - a.z))).abs();
+                    max_alt_error = Some(max_alt_error.map_or(e, |m: f64| m.max(e)));
+                }
+            }
+        }
+        errors.push(0.0); // the last kept point lies on the line by definition
+    }
+    errors.sort_by(|a, b| a.total_cmp(b));
+    let mean = if errors.is_empty() { 0.0 } else { errors.iter().sum::<f64>() / errors.len() as f64 };
+    let p95 = errors.get(((errors.len() as f64) * 0.95).ceil().max(1.0) as usize - 1).copied().unwrap_or(0.0);
+    let r1 = |v: f64| (v * 10.0).round() / 10.0;
+
+    Report {
+        original_points: n,
+        kept_points: kept.len(),
+        removed_pct: if n == 0 { 0.0 } else { r1(100.0 * (n - kept.len()) as f64 / n as f64) },
+        tolerance_m: opts.tolerance_m,
+        altitude_tolerance_m: opts.altitude_tolerance_m,
+        min_step_m: opts.min_step_m,
+        max_error_m: r1(errors.last().copied().unwrap_or(0.0)),
+        mean_error_m: r1(mean),
+        p95_error_m: r1(p95),
+        original_distance_m: distance_m(&original).round(),
+        simplified_distance_m: distance_m(&simplified).round(),
+        original_gain_m: gain_m(&original).map(f64::round),
+        simplified_gain_m: gain_m(&simplified).map(f64::round),
+        max_altitude_error_m: max_alt_error.map(r1),
+    }
+}
+
+/// Tauri command: the points to keep and a report on how faithful the result is.
 #[tauri::command]
-pub async fn simplify_track(points: Vec<Point>, options: Option<Options>) -> Vec<usize> {
-    simplify(&points, options.unwrap_or_default())
+pub async fn simplify_track(points: Vec<Point>, options: Option<Options>) -> Simplified {
+    simplify_with_report(&points, options.unwrap_or_default())
 }
 
 #[cfg(test)]
@@ -265,5 +389,38 @@ mod tests {
         let pts = winding_climb();
         let bad = Options { tolerance_m: 0.0, altitude_tolerance_m: f64::NAN, min_step_m: -1.0 };
         assert_eq!(simplify(&pts, bad), simplify(&pts, Options::default()));
+    }
+
+    #[test]
+    fn report_describes_compression_and_fidelity() {
+        let pts = winding_climb();
+        let s = simplify_with_report(&pts, Options::default());
+        let r = &s.report;
+        assert_eq!(r.original_points, 6000);
+        assert_eq!(r.kept_points, s.kept.len());
+        assert!(r.removed_pct > 95.0 && r.removed_pct < 100.0, "{}", r.removed_pct);
+        assert!(r.max_error_m <= 6.0 && r.p95_error_m <= r.max_error_m && r.mean_error_m <= r.p95_error_m);
+        assert!(r.simplified_distance_m <= r.original_distance_m * 1.001);
+        let (g0, g1) = (r.original_gain_m.unwrap(), r.simplified_gain_m.unwrap());
+        assert!((g0 - g1).abs() / g0 < 0.05);
+        assert!(r.max_altitude_error_m.unwrap() > 0.0);
+        assert_eq!((r.tolerance_m, r.min_step_m), (4.0, 2.0));
+    }
+
+    #[test]
+    fn report_of_a_perfectly_straight_track_has_no_error() {
+        let pts: Vec<Point> = (0..500).map(|i| pt(43.0 + i as f64 * 1e-5, 10.0, None)).collect();
+        let r = simplify_with_report(&pts, Options::default()).report;
+        assert_eq!((r.original_points, r.kept_points), (500, 2));
+        assert!(r.max_error_m < 0.1 && r.original_gain_m.is_none() && r.max_altitude_error_m.is_none());
+        assert!((r.original_distance_m - r.simplified_distance_m).abs() <= 1.0);
+    }
+
+    #[test]
+    fn report_of_degenerate_input() {
+        let r = simplify_with_report(&[], Options::default()).report;
+        assert_eq!((r.original_points, r.kept_points, r.removed_pct, r.max_error_m), (0, 0, 0.0, 0.0));
+        let r = simplify_with_report(&[pt(1.0, 1.0, Some(5.0))], Options::default()).report;
+        assert_eq!((r.original_points, r.kept_points), (1, 1));
     }
 }
