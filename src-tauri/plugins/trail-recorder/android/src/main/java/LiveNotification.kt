@@ -115,6 +115,26 @@ object LiveNotification {
         )
     }
 
+    /**
+     * Asks for promotion to a Live Update. The guide names both `Builder.setRequestPromotedOngoing` and
+     * the `EXTRA_REQUEST_PROMOTED_ONGOING` extra; which one a given build has is not certain, so
+     * try the method first and fall back to the extra. Reflection keeps the build from breaking.
+     */
+    private fun requestPromotion(builder: Notification.Builder) {
+        if (callIfPresent(builder, "setRequestPromotedOngoing", Boolean::class.javaPrimitiveType!!, true)) return
+        val key = runCatching { Notification::class.java.getField("EXTRA_REQUEST_PROMOTED_ONGOING").get(null) as String }
+            .getOrDefault("android.requestPromotedOngoing")
+        builder.addExtras(Bundle().apply { putBoolean(key, true) })
+    }
+
+    private fun callIfPresent(builder: Notification.Builder, name: String, type: Class<*>, value: Any): Boolean =
+        try {
+            Notification.Builder::class.java.getMethod(name, type).invoke(builder, value)
+            true
+        } catch (e: Exception) {
+            false
+        }
+
     /** Android 16 (API 36) Live Update: a progress-style notification that asks to be promoted. */
     private object Promoted {
         fun build(context: Context, c: Content, tap: PendingIntent?): Notification {
@@ -125,7 +145,6 @@ object LiveNotification {
             } else {
                 style.setProgressIndeterminate(true)
             }
-            val extras = Bundle().apply { putBoolean("android.requestPromotedOngoing", true) }
             val builder = Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_menu_mylocation)
                 .setContentTitle(c.title)
@@ -138,8 +157,9 @@ object LiveNotification {
                 .setUsesChronometer(true)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setContentIntent(tap)
-                .addExtras(extras)
-            if (c.chip.isNotEmpty()) builder.setShortCriticalText(c.chip)
+            requestPromotion(builder)
+            // Compact "chip" text; the guide suggests at most 7 characters.
+            if (c.chip.isNotEmpty()) callIfPresent(builder, "setShortCriticalText", String::class.java, c.chip)
             return builder.build()
         }
     }
