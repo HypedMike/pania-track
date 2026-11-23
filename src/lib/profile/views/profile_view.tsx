@@ -8,7 +8,7 @@ import MainLayout from "../../../shared/ui/layout/main_layout";
 import { useTrailStore } from "../../trail/stores/trail_store";
 import Avatar from "../components/avatar";
 import BackupKeyDialog from "../components/backup_key_dialog";
-import { shortNpub } from "../nostr_keys";
+import { shortNpub } from "../nostr";
 import { useProfileStore } from "../profile_store";
 
 const CARD = "rounded-2xl border border-line bg-surface";
@@ -111,7 +111,7 @@ function ProfileDetails() {
   const t = useT();
   const profile = useProfileStore((s) => s.profile)!;
   const removeProfile = useProfileStore((s) => s.removeProfile);
-  const revealSecretKey = useProfileStore((s) => s.revealSecretKey);
+  const hasSecretKey = useProfileStore((s) => s.hasSecretKey);
   const trails = useTrailStore((s) => s.trails);
   const [backupOpen, setBackupOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -120,13 +120,13 @@ function ProfileDetails() {
   // The profile record can outlive its key (app data restored on another phone): say so.
   useEffect(() => {
     let cancelled = false;
-    revealSecretKey()
-      .then((key) => !cancelled && setKeyMissing(key === null))
+    hasSecretKey()
+      .then((has) => !cancelled && setKeyMissing(!has))
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [revealSecretKey]);
+  }, [hasSecretKey]);
 
   async function copyNpub() {
     try {

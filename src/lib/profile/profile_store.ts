@@ -1,10 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { t } from "../../shared/i18n/i18n";
-import { generateKeys, parseSecretKey, type NostrKeys } from "./nostr_keys";
-import { secretStore } from "./secret_store";
+import { isInvalidSecretKey, nostr } from "./nostr";
 
-/** Public part of the profile. The secret key is never in here: see `secretStore`. */
+/** Public part of the profile. The secret key is never in here: the Rust backend keeps it. */
 export interface Profile {
   name: string;
   /** Square avatar as a data URL; stays on this device until publishing exists. */
@@ -20,8 +19,6 @@ export interface ProfileInput {
   picture?: string;
 }
 
-const SECRET_KEY_NAME = "nostr-nsec";
-
 interface ProfileState {
   profile: Profile | null;
   /** Creates a new Nostr key pair and the profile that owns it. */
@@ -29,8 +26,10 @@ interface ProfileState {
   /** Uses an existing `nsec` / hex secret key instead of generating one. */
   importProfile: (secret: string, input: ProfileInput) => Promise<Profile>;
   updateProfile: (input: ProfileInput) => void;
-  /** Reads the secret key from secure storage, e.g. to show it for a backup. */
+  /** Reads the secret key from secure storage, only to show it for a backup. */
   revealSecretKey: () => Promise<string | null>;
+  /** Whether this device still has the key that belongs to the profile. */
+  hasSecretKey: () => Promise<boolean>;
   markBackedUp: () => void;
   /** Deletes the secret key and the profile from this device. */
   removeProfile: () => Promise<void>;
@@ -42,10 +41,8 @@ function normalize({ name, picture }: ProfileInput): ProfileInput {
   return { name: trimmed, picture };
 }
 
-async function persistKeys(keys: NostrKeys, input: ProfileInput): Promise<Profile> {
-  // The secret goes first: if this fails there is no profile that points at a missing key.
-  await secretStore.set(SECRET_KEY_NAME, keys.nsec);
-  return { ...input, npub: keys.npub, backedUp: false, createdAt: Date.now() };
+function newProfile(npub: string, input: ProfileInput): Profile {
+  return { ...input, npub, backedUp: false, createdAt: Date.now() };
 }
 
 export const useProfileStore = create<ProfileState>()(
@@ -54,21 +51,22 @@ export const useProfileStore = create<ProfileState>()(
       profile: null,
 
       async createProfile(input) {
-        const profile = await persistKeys(generateKeys(), normalize(input));
+        const normalized = normalize(input);
+        const profile = newProfile(await nostr.createIdentity(), normalized);
         set({ profile });
         return profile;
       },
 
       async importProfile(secret, input) {
-        let keys: NostrKeys;
+        const normalized = normalize(input);
+        let npub: string;
         try {
-          keys = parseSecretKey(secret);
-        } catch {
-          throw new Error(t("profile.importInvalid"));
+          npub = await nostr.importIdentity(secret);
+        } catch (e) {
+          throw isInvalidSecretKey(e) ? new Error(t("profile.importInvalid")) : e;
         }
-        const profile = await persistKeys(keys, normalize(input));
         // An imported key was backed up somewhere already, or the user would not have it.
-        const imported = { ...profile, backedUp: true };
+        const imported = { ...newProfile(npub, normalized), backedUp: true };
         set({ profile: imported });
         return imported;
       },
@@ -79,7 +77,11 @@ export const useProfileStore = create<ProfileState>()(
         set({ profile: { ...current, ...normalize(input) } });
       },
 
-      revealSecretKey: () => secretStore.get(SECRET_KEY_NAME),
+      revealSecretKey: () => nostr.exportSecret(),
+
+      async hasSecretKey() {
+        return (await nostr.identityNpub()) !== null;
+      },
 
       markBackedUp() {
         const current = get().profile;
@@ -87,7 +89,7 @@ export const useProfileStore = create<ProfileState>()(
       },
 
       async removeProfile() {
-        await secretStore.delete(SECRET_KEY_NAME);
+        await nostr.removeIdentity();
         set({ profile: null });
       },
     }),
