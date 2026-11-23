@@ -1,3 +1,5 @@
+mod simplify;
+
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 /// Connection string shared with the frontend (`src/shared/database`).
@@ -49,6 +51,7 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_secret_store::init());
 
     builder
+        .invoke_handler(tauri::generate_handler![simplify::simplify_track])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
