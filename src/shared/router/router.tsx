@@ -14,6 +14,7 @@ import SaveRecordingView from "../../lib/trail/views/save_recording_view";
 import StatsView from "../../lib/stats/views/stats_view";
 import SettingsView from "../../lib/settings/views/settings_view";
 import TrailDetailView from "../../lib/trail/views/trail_detail_view";
+import TourView from "../../lib/tour/views/tour_view";
 import { ROUTES } from "./routes";
 
 export const router = createHashRouter([
@@ -32,4 +33,5 @@ export const router = createHashRouter([
   { path: ROUTES.exploreTrail, element: <SharedTrailView /> },
   { path: ROUTES.stats, element: <StatsView /> },
   { path: ROUTES.trailDetail, element: <TrailDetailView /> },
+  { path: ROUTES.tour, element: <TourView /> },
 ]);

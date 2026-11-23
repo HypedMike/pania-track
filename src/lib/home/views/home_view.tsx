@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigation } from "../../../shared/router/use_navigation";
-import { ROUTES, trailDetailPath } from "../../../shared/router/routes";
+import { ROUTES, tourPath, trailDetailPath } from "../../../shared/router/routes";
 import { computeStats } from "../../../shared/gps/trail_stats";
 import { useRecordingStore } from "../../trail/stores/recording_store";
+import { useTourStore } from "../../tour/tour_store";
+import TourBanner from "../../tour/components/tour_banner";
 import { useTrailStore } from "../../trail/stores/trail_store";
 import type { TrailSource } from "../../trail/interfaces/trail";
 import { useT } from "../../../shared/i18n/i18n";
@@ -21,6 +23,7 @@ function HomeView() {
   const { goTo } = useNavigation();
   const { trails, loading, error, load } = useTrailStore();
   const recordingStatus = useRecordingStore((state) => state.status);
+  const tourTrailId = useTourStore((state) => (state.status === "active" ? state.trailId : null));
   const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
@@ -68,8 +71,10 @@ function HomeView() {
         />
       )}
 
+      {tourTrailId && <TourBanner onOpen={() => goTo(tourPath(tourTrailId))} />}
+
       <HomeActions
-        recordDisabled={recordingStatus !== "idle"}
+        recordDisabled={recordingStatus !== "idle" || tourTrailId !== null}
         onRecord={() => goTo(ROUTES.record)}
         onImport={() => goTo(ROUTES.importTrail)}
         onPlan={() => goTo(ROUTES.plan)}

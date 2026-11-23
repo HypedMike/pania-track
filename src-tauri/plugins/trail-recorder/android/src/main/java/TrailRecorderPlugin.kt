@@ -16,6 +16,9 @@ import app.tauri.plugin.Plugin
 @InvokeArg
 class StartOptions {
     var intervalMs: Long = 5_000
+
+    /** Off-track alert settings for a tour (see [OffTrackGuard]); null when recording a trail. */
+    var guardJson: String? = null
 }
 
 @TauriPlugin(
@@ -32,8 +35,13 @@ class TrailRecorderPlugin(private val activity: Activity) : Plugin(activity) {
     fun start(invoke: Invoke) {
         val options = invoke.parseArgs(StartOptions::class.java)
         PointBuffer.lastError = null
+        // The trail can be thousands of points, too big for an Intent extra, so it goes via a file.
+        val guardJson = options.guardJson
+        val guarding = guardJson != null && OffTrackGuard.save(context, guardJson)
+        if (!guarding) OffTrackGuard.clear(context)
         val intent = Intent(context, RecorderService::class.java)
             .putExtra(RecorderService.EXTRA_INTERVAL_MS, options.intervalMs)
+            .putExtra(RecorderService.EXTRA_GUARD, guarding)
         try {
             ContextCompat.startForegroundService(context, intent)
             invoke.resolve()
@@ -45,6 +53,7 @@ class TrailRecorderPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun stop(invoke: Invoke) {
         context.stopService(Intent(context, RecorderService::class.java))
+        OffTrackGuard.clear(context)
         PointBuffer.running = false
         invoke.resolve()
     }
