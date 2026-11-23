@@ -1,13 +1,8 @@
-import { useLayoutEffect } from "react";
 import { useT } from "../../i18n/i18n";
 import { ROUTES } from "../../router/routes";
 import { useNavigation } from "../../router/use_navigation";
 
 type Tab = "trails" | "explore" | "stats" | "profile";
-
-const ORDER: Tab[] = ["trails", "explore", "stats", "profile"];
-/** How long the direction flag stays on <html>, so it only affects this transition. */
-const DIRECTION_MS = 500;
 
 const ICONS: Record<Tab, React.ReactNode> = {
   trails: <path d="M3 20l6-12 4 6 3-4 5 10z" strokeLinejoin="round" />,
@@ -29,11 +24,6 @@ const ICONS: Record<Tab, React.ReactNode> = {
 /** Bottom tab bar switching between the trail list, explore, stats and the profile. */
 function BottomNav({ current }: { current: Tab }) {
   const t = useT();
-  // On a tab switch the new page must be captured scrolled to the top, otherwise its header
-  // jumps while sliding in (the previous tab may have been scrolled further than this one is tall).
-  useLayoutEffect(() => {
-    if (document.documentElement.dataset.tabDir) window.scrollTo(0, 0);
-  }, []);
   const { goTo } = useNavigation();
   const tabs: { id: Tab; label: string; route: typeof ROUTES.home | typeof ROUTES.explore | typeof ROUTES.stats | typeof ROUTES.profile }[] = [
     { id: "trails", label: t("nav.trails"), route: ROUTES.home },
@@ -57,11 +47,9 @@ function BottomNav({ current }: { current: Tab }) {
             aria-current={active ? "page" : undefined}
             onClick={() => {
               if (active) return;
-              // Read by the tab-slide rules in index.css to pick the slide direction.
-              const root = document.documentElement;
-              root.dataset.tabDir = ORDER.indexOf(tab.id) > ORDER.indexOf(current) ? "forward" : "back";
-              setTimeout(() => delete root.dataset.tabDir, DIRECTION_MS);
-              goTo(tab.route, { replace: true });
+              // Tabs switch instantly (no view transition), and the new tab starts at the top.
+              window.scrollTo(0, 0);
+              goTo(tab.route, { replace: true, viewTransition: false });
             }}
             className={`flex h-14 flex-col items-center justify-center gap-1 text-xs ${
               active ? "font-semibold text-brand-fg" : "font-medium text-muted"
