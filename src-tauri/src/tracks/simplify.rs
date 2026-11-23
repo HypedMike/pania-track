@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 const EARTH_RADIUS_M: f64 = 6_371_000.0;
 
 /// A track point. Other fields the frontend sends (timestamps) are ignored.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Point {
     pub latitude: f64,
     pub longitude: f64,
@@ -97,18 +97,18 @@ pub struct Simplified {
 /// Altitude changes below this are GPS noise when summing elevation gain (same as the app's stats).
 const ELEVATION_NOISE_M: f64 = 3.0;
 
-fn haversine_m(a: &Point, b: &Point) -> f64 {
+pub fn haversine_m(a: &Point, b: &Point) -> f64 {
     let (d_lat, d_lon) = ((b.latitude - a.latitude).to_radians(), (b.longitude - a.longitude).to_radians());
     let h = (d_lat / 2.0).sin().powi(2)
         + a.latitude.to_radians().cos() * b.latitude.to_radians().cos() * (d_lon / 2.0).sin().powi(2);
     2.0 * EARTH_RADIUS_M * h.sqrt().asin()
 }
 
-fn distance_m(points: &[&Point]) -> f64 {
+pub fn distance_m(points: &[&Point]) -> f64 {
     points.windows(2).map(|w| haversine_m(w[0], w[1])).sum()
 }
 
-fn gain_m(points: &[&Point]) -> Option<f64> {
+pub fn gain_m(points: &[&Point]) -> Option<f64> {
     let mut alts = points.iter().filter_map(|p| p.altitude.filter(|a| a.is_finite()));
     let mut reference = alts.next()?;
     let mut gain = 0.0;

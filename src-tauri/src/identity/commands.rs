@@ -8,7 +8,7 @@ use tauri::{AppHandle, Runtime};
 
 const SECRET_NAME: &str = "nostr-nsec";
 
-fn load_keys<R: Runtime>(app: &AppHandle<R>) -> Result<Keys, String> {
+pub(crate) fn load_keys<R: Runtime>(app: &AppHandle<R>) -> Result<Keys, String> {
     let nsec = secrets::get(app, SECRET_NAME)?.ok_or("no identity on this device")?;
     keys::parse_secret(&nsec)
 }
