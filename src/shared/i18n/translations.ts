@@ -64,6 +64,13 @@ export const en = {
   "update.message": "Pania {version} is available (you have {current}). Download it now?",
   "update.action": "Update",
   "update.later": "Later",
+  "update.downloading": "Downloading Pania {version}… Android will ask you to confirm the install.",
+  "update.downloadingShort": "Downloading…",
+  "update.permissionText": "To install updates from inside the app, allow Pania to install apps in the next screen, then come back.",
+  "update.permissionAction": "Open settings",
+  "update.failed": "The update could not be installed: {error}",
+  "update.retry": "Try again",
+  "update.openBrowser": "Download in the browser",
   "settings.recordingInProgress": "A recording is in progress; the new interval applies when it resumes.",
 
   // about
@@ -443,6 +450,13 @@ export const it: Record<TranslationKey, string> = {
   "update.message": "Pania {version} è disponibile (hai la {current}). Vuoi scaricarla ora?",
   "update.action": "Aggiorna",
   "update.later": "Più tardi",
+  "update.downloading": "Scarico Pania {version}… Android ti chiederà di confermare l'installazione.",
+  "update.downloadingShort": "Download in corso…",
+  "update.permissionText": "Per installare gli aggiornamenti dall'app, consenti a Pania di installare app nella schermata successiva, poi torna qui.",
+  "update.permissionAction": "Apri le impostazioni",
+  "update.failed": "Non è stato possibile installare l'aggiornamento: {error}",
+  "update.retry": "Riprova",
+  "update.openBrowser": "Scarica dal browser",
   "settings.recordingInProgress": "Una registrazione è in corso; il nuovo intervallo si applica alla ripresa.",
 
   "about.title": "Informazioni",

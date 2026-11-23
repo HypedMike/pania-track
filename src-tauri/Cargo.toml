@@ -25,6 +25,7 @@ serde_json = "1"
 tauri-plugin-sql = { version = "2.6.0", features = ["sqlite"] }
 tauri-plugin-trail-recorder = { path = "plugins/trail-recorder" }
 tauri-plugin-secret-store = { path = "plugins/secret-store" }
+tauri-plugin-app-installer = { path = "plugins/app-installer" }
 quick-xml = "0.38"
 nostr-sdk = "0.45"
 nostr = { version = "0.45.7", default-features = false, features = ["std", "os-rng", "nip44"] }
