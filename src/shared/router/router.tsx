@@ -15,6 +15,9 @@ import StatsView from "../../lib/stats/views/stats_view";
 import SettingsView from "../../lib/settings/views/settings_view";
 import TrailDetailView from "../../lib/trail/views/trail_detail_view";
 import TourView from "../../lib/tour/views/tour_view";
+import TourReviewView from "../../lib/tour/views/tour_review_view";
+import InsightsView from "../../lib/analysis/views/insights_view";
+import TrailAnalysisView from "../../lib/analysis/views/trail_analysis_view";
 import { ROUTES } from "./routes";
 
 export const router = createHashRouter([
@@ -34,4 +37,7 @@ export const router = createHashRouter([
   { path: ROUTES.stats, element: <StatsView /> },
   { path: ROUTES.trailDetail, element: <TrailDetailView /> },
   { path: ROUTES.tour, element: <TourView /> },
+  { path: ROUTES.trailAnalysis, element: <TrailAnalysisView /> },
+  { path: ROUTES.insights, element: <InsightsView /> },
+  { path: ROUTES.tourReview, element: <TourReviewView /> },
 ]);

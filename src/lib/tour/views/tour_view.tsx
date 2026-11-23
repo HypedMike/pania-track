@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { currentLocale, useT } from "../../../shared/i18n/i18n";
 import { useNavigation } from "../../../shared/router/use_navigation";
-import { tourPath, trailDetailPath } from "../../../shared/router/routes";
+import { tourPath, tourReviewPath, trailDetailPath } from "../../../shared/router/routes";
 import { formatDistance, formatDuration } from "../../../shared/gps/trail_stats";
 import PageHeader from "../../../shared/ui/layout/page_header";
 import TrailMap from "../../trail/components/trail_map";
@@ -114,8 +114,9 @@ function TourView() {
 
   async function finish() {
     if (guidance && !guidance.arrived && !window.confirm(t("tour.confirmStop"))) return;
-    await stop();
-    goTo(trailDetailPath(id), { replace: true });
+    // A tour that was recorded is shown next to its plan; one that was not kept goes back to the trail.
+    const runId = await stop();
+    goTo(runId ? tourReviewPath(runId) : trailDetailPath(id), { replace: true });
   }
 
   // ── Another tour is running ──────────────────────────────────────────────────────────────

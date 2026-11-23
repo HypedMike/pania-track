@@ -31,6 +31,7 @@ interface CoordinateRow {
   longitude: number;
   altitude: number | null;
   timestamp: string | null;
+  accuracy?: number | null;
 }
 
 function toCoordinate(row: CoordinateRow): GpsCoordinate {
@@ -39,13 +40,14 @@ function toCoordinate(row: CoordinateRow): GpsCoordinate {
     longitude: row.longitude,
     ...(row.altitude !== null && { altitude: row.altitude }),
     ...(row.timestamp !== null && { timestamp: row.timestamp }),
+    ...(row.accuracy != null && { accuracy: row.accuracy }),
   };
 }
 
 async function loadCoordinates(trailId: string): Promise<GpsCoordinate[]> {
   const db = await getDatabase();
   const rows = await db.select<CoordinateRow[]>(
-    "SELECT latitude, longitude, altitude, timestamp FROM trail_coordinates WHERE trail_id = $1 ORDER BY position",
+    "SELECT latitude, longitude, altitude, timestamp, accuracy FROM trail_coordinates WHERE trail_id = $1 ORDER BY position",
     [trailId],
   );
   return rows.map(toCoordinate);
@@ -91,6 +93,8 @@ async function hydrate(row: TrailRow): Promise<Trail> {
 
 // SQLite caps bound variables per statement, so coordinates are inserted in chunks.
 const COORDINATE_CHUNK = 100;
+/** Bound values per coordinate row: position, latitude, longitude, altitude, timestamp, accuracy. */
+const COORDINATE_COLUMNS = 6;
 
 export const trailRepository = {
   async getAll(): Promise<Trail[]> {
@@ -153,7 +157,10 @@ export const trailRepository = {
     for (let i = 0; i < trail.coordinates.length; i += COORDINATE_CHUNK) {
       const chunk = trail.coordinates.slice(i, i + COORDINATE_CHUNK);
       const placeholders = chunk
-        .map((_, j) => `($1, $${j * 5 + 2}, $${j * 5 + 3}, $${j * 5 + 4}, $${j * 5 + 5}, $${j * 5 + 6})`)
+        .map((_, j) => {
+          const p = (k: number) => `$${j * COORDINATE_COLUMNS + k}`;
+          return `($1, ${p(2)}, ${p(3)}, ${p(4)}, ${p(5)}, ${p(6)}, ${p(7)})`;
+        })
         .join(", ");
       const values = chunk.flatMap((c, j) => [
         i + j,
@@ -161,9 +168,10 @@ export const trailRepository = {
         c.longitude,
         c.altitude ?? null,
         c.timestamp ?? null,
+        c.accuracy ?? null,
       ]);
       await db.execute(
-        `INSERT INTO trail_coordinates (trail_id, position, latitude, longitude, altitude, timestamp) VALUES ${placeholders}`,
+        `INSERT INTO trail_coordinates (trail_id, position, latitude, longitude, altitude, timestamp, accuracy) VALUES ${placeholders}`,
         [trail.id, ...values],
       );
     }

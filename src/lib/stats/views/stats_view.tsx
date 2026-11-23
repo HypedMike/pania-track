@@ -5,7 +5,7 @@ import {
   formatDuration,
   formatElevation,
 } from "../../../shared/gps/trail_stats";
-import { trailDetailPath } from "../../../shared/router/routes";
+import { ROUTES, trailDetailPath } from "../../../shared/router/routes";
 import { useNavigation } from "../../../shared/router/use_navigation";
 import BottomNav from "../../../shared/ui/layout/bottom_nav";
 import MainLayout from "../../../shared/ui/layout/main_layout";
@@ -232,6 +232,20 @@ function StatsView() {
             )}
           </>
         )}
+
+        <button
+          type="button"
+          onClick={() => goTo(ROUTES.insights)}
+          className={`${CARD} flex min-h-14 items-center justify-between gap-3 p-4 text-left`}
+        >
+          <span className="flex flex-col">
+            <span className="text-sm font-semibold">{t("insights.open")}</span>
+            <span className="text-sm text-muted">{t("insights.openHint")}</span>
+          </span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-muted">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
       </MainLayout>
       <BottomNav current="stats" />
     </div>
