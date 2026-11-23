@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useParams } from "react-router";
 import { currentLocale, plural, useT } from "../../../shared/i18n/i18n";
 import { useNavigation } from "../../../shared/router/use_navigation";
-import { ROUTES, tourPath } from "../../../shared/router/routes";
+import { ROUTES, tourPath, tourReviewPath, trailAnalysisPath } from "../../../shared/router/routes";
+import { tourRunRepository, type TourRun } from "../../tour/tour_run_repository";
 import { captureLock } from "../../../shared/gps/capture_lock";
 import { useTourStore } from "../../tour/tour_store";
 import { toast } from "sonner";
@@ -57,6 +58,7 @@ function TrailDetailView() {
   const [editing, setEditing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [runs, setRuns] = useState<TourRun[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [activity, setActivity] = useState<TrailActivity>("foot");
@@ -67,6 +69,18 @@ function TrailDetailView() {
   useEffect(() => {
     if (!trail) load();
   }, [trail, load]);
+
+  // Tours followed on this trail, newest first.
+  useEffect(() => {
+    let alive = true;
+    void tourRunRepository
+      .listForTrail(id)
+      .then((r) => alive && setRuns(r))
+      .catch(() => alive && setRuns([]));
+    return () => {
+      alive = false;
+    };
+  }, [id, touringHere]);
 
   if (!trail) {
     return (
@@ -319,6 +333,44 @@ function TrailDetailView() {
         )}
 
         <ElevationProfile coordinates={trail.coordinates} />
+
+        {!editing && pointCount > 1 && (
+          <button
+            type="button"
+            onClick={() => goTo(trailAnalysisPath(id))}
+            className="flex h-[54px] items-center justify-between rounded-2xl border border-line-strong bg-surface px-4 text-left text-base font-semibold"
+          >
+            <span>{t("analysis.open")}</span>
+            <span className="text-sm font-normal text-muted">{t("analysis.openHint")}</span>
+          </button>
+        )}
+
+        {!editing && runs.filter((r) => r.endedAt).length > 0 && (
+          <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4">
+            <h2 className="text-sm font-semibold">{t("review.history")}</h2>
+            <ul className="flex flex-col divide-y divide-line">
+              {runs
+                .filter((r) => r.endedAt)
+                .map((r) => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => goTo(tourReviewPath(r.id))}
+                      className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left"
+                    >
+                      <span className="text-sm">
+                        {formatDate(r.startedAt)}
+                        {r.finished ? "" : ` · ${t("review.unfinished")}`}
+                      </span>
+                      <span className="text-sm text-muted">
+                        {r.endedAt ? formatDuration(r.endedAt - r.startedAt) : ""}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </section>
+        )}
 
         {!editing && trail.description && (
           <p className="text-sm leading-relaxed text-ink-soft">

@@ -49,6 +49,7 @@ pub struct Fix {
 }
 
 impl Fix {
+    #[cfg(test)]
     pub fn at(latitude: f64, longitude: f64) -> Self {
         Self {
             latitude,

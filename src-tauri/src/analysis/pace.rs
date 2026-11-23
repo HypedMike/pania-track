@@ -35,15 +35,6 @@ pub fn speed_factor(activity: Activity, grade: f64) -> f64 {
     }
 }
 
-/// Speed on flat ground that would take as long as this leg did: comparable across terrain.
-pub fn flat_equivalent_ms(activity: Activity, leg: &Leg) -> f64 {
-    let factor = leg
-        .grade()
-        .map(|g| speed_factor(activity, g))
-        .unwrap_or(1.0);
-    leg.speed_ms() / factor
-}
-
 /// Grade-adjusted speed of a set of legs: Σ(distance / factor) / Σtime.
 fn adjusted_speed(activity: Activity, legs: &[&Leg]) -> Option<f64> {
     let time: f64 = legs.iter().map(|l| l.time_s).sum();
@@ -203,6 +194,7 @@ pub struct Profile {
 }
 
 impl Profile {
+    #[cfg(test)]
     pub fn total_s(&self) -> f64 {
         self.seconds.last().copied().unwrap_or(0.0)
     }

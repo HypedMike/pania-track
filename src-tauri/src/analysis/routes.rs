@@ -141,6 +141,7 @@ fn overlap(a: &Prepared, b: &Prepared) -> Option<Overlap> {
 }
 
 /// How much two trails overlap, and in which direction; `None` when they are far apart.
+#[cfg(test)]
 pub fn compare(a: &TrailInput, b: &TrailInput) -> Option<Overlap> {
     overlap(&prepare(a)?, &prepare(b)?)
 }
