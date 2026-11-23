@@ -3,6 +3,9 @@ import HomeView from "../../lib/home/views/home_view";
 import ImportTrailView from "../../lib/trail/views/import_trail_view";
 import PlanView from "../../lib/plan/views/plan_view";
 import RouteVariantsView from "../../lib/plan/views/route_variants_view";
+import CreateProfileView from "../../lib/profile/views/create_profile_view";
+import ImportProfileView from "../../lib/profile/views/import_profile_view";
+import ProfileView from "../../lib/profile/views/profile_view";
 import RecordingView from "../../lib/trail/views/recording_view";
 import SaveRecordingView from "../../lib/trail/views/save_recording_view";
 import StatsView from "../../lib/stats/views/stats_view";
@@ -17,6 +20,9 @@ export const router = createHashRouter([
   { path: ROUTES.importTrail, element: <ImportTrailView /> },
   { path: ROUTES.plan, element: <PlanView /> },
   { path: ROUTES.planRoutes, element: <RouteVariantsView /> },
+  { path: ROUTES.profile, element: <ProfileView /> },
+  { path: ROUTES.profileCreate, element: <CreateProfileView /> },
+  { path: ROUTES.profileImport, element: <ImportProfileView /> },
   { path: ROUTES.settings, element: <SettingsView /> },
   { path: ROUTES.stats, element: <StatsView /> },
   { path: ROUTES.trailDetail, element: <TrailDetailView /> },

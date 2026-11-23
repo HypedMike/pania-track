@@ -1,0 +1,3 @@
+[default]
+description = "Allows reading, writing and deleting secrets in the app's keystore-backed store."
+permissions = ["allow-get-secret", "allow-set-secret", "allow-delete-secret"]
