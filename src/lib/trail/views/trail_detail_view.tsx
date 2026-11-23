@@ -17,6 +17,9 @@ import type { TrailActivity } from "../interfaces/trail";
 import ElevationProfile from "../components/elevation_profile";
 import SourceBadge from "../components/source_badge";
 import TrailMap from "../components/trail_map";
+import ShareTrailDialog from "../../sharing/components/share_trail_dialog";
+import { sharingApi } from "../../sharing/sharing_api";
+import { shortNpub } from "../../profile/nostr";
 import { useTrailStore } from "../stores/trail_store";
 
 const FIELD =
@@ -49,6 +52,7 @@ function TrailDetailView() {
 
   const [editing, setEditing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [activity, setActivity] = useState<TrailActivity>("foot");
@@ -103,6 +107,10 @@ function TrailDetailView() {
     )
       return;
     try {
+      // A trail that is public should not silently stay public after it is gone from the phone.
+      if (trail.sharedAt && window.confirm(t("share.askRemove"))) {
+        await sharingApi.unshareTrail(trail.id).catch(() => undefined);
+      }
       await deleteTrail(id);
       goTo(ROUTES.home, { replace: true });
     } catch (e) {
@@ -239,6 +247,18 @@ function TrailDetailView() {
                   ` · ${plural("common.waypoint", trail.waypoints.length, t)}`}
               </span>
             </div>
+            {trail.author && (
+              <p className="text-[13px] text-muted">
+                {t("shared.createdBy", { name: trail.author.name ?? t("explore.anonymous") })} ·{" "}
+                <span className="font-mono">{shortNpub(trail.author.npub)}</span>
+              </p>
+            )}
+            {trail.sharedAt && (
+              <p className="text-[13px] font-semibold text-brand-fg">
+                {t("share.shared")}
+                {trail.updatedAt && trail.updatedAt > trail.sharedAt + 1000 ? ` · ${t("share.editedSince")}` : ""}
+              </p>
+            )}
           </header>
         )}
 
@@ -283,8 +303,18 @@ function TrailDetailView() {
 
         {!editing && error && <p className="text-sm text-danger">{error}</p>}
 
+        {!editing && trail.source !== "bookmarked" && pointCount > 1 && (
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            className="mt-auto h-[54px] rounded-2xl border-2 border-brand-fg text-base font-semibold text-brand-fg"
+          >
+            {trail.sharedAt ? t("share.updateShared") : t("share.public")}
+          </button>
+        )}
+
         {!editing && (
-          <div className="mt-auto grid grid-cols-[1fr_2fr] gap-3 pt-2">
+          <div className="grid grid-cols-[1fr_2fr] gap-3 pt-2">
             <button
               type="button"
               onClick={startEditing}
@@ -317,6 +347,7 @@ function TrailDetailView() {
           </div>
         )}
       </div>
+      {shareOpen && <ShareTrailDialog trail={trail} onClose={() => setShareOpen(false)} />}
     </main>
   );
 }

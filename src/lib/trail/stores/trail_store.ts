@@ -4,7 +4,8 @@ import type { Trail } from "../interfaces/trail";
 import { trailRepository } from "../repositories/trail_repository";
 
 /** Fields the user provides; the store generates the rest. */
-export type NewTrail = Pick<Trail, "name" | "description" | "coordinates" | "waypoints" | "source" | "activity">;
+export type NewTrail = Pick<Trail, "name" | "description" | "coordinates" | "waypoints" | "source" | "activity"> &
+  Partial<Pick<Trail, "author" | "sharedAt" | "sharedEventId">>;
 
 interface TrailState {
   trails: Trail[];

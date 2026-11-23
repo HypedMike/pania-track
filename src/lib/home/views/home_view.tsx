@@ -46,6 +46,7 @@ function HomeView() {
     { id: "imported", label: t("home.filterImported"), n: count("imported") },
     // Only shown once there is something to filter, so the row fits on a phone.
     ...(count("planned") > 0 ? [{ id: "planned" as const, label: t("home.filterPlanned"), n: count("planned") }] : []),
+    ...(count("bookmarked") > 0 ? [{ id: "bookmarked" as const, label: t("home.filterSaved"), n: count("bookmarked") }] : []),
   ];
 
   return (

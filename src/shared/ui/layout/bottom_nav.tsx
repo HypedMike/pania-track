@@ -3,14 +3,20 @@ import { useT } from "../../i18n/i18n";
 import { ROUTES } from "../../router/routes";
 import { useNavigation } from "../../router/use_navigation";
 
-type Tab = "trails" | "stats" | "profile";
+type Tab = "trails" | "explore" | "stats" | "profile";
 
-const ORDER: Tab[] = ["trails", "stats", "profile"];
+const ORDER: Tab[] = ["trails", "explore", "stats", "profile"];
 /** How long the direction flag stays on <html>, so it only affects this transition. */
 const DIRECTION_MS = 500;
 
 const ICONS: Record<Tab, React.ReactNode> = {
   trails: <path d="M3 20l6-12 4 6 3-4 5 10z" strokeLinejoin="round" />,
+  explore: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M15.5 8.5l-2 5-5 2 2-5z" strokeLinejoin="round" />
+    </>
+  ),
   stats: <path d="M5 20V12M12 20V5M19 20v-9" />,
   profile: (
     <>
@@ -20,7 +26,7 @@ const ICONS: Record<Tab, React.ReactNode> = {
   ),
 };
 
-/** Bottom tab bar switching between the trail list, the stats screen and the profile. */
+/** Bottom tab bar switching between the trail list, explore, stats and the profile. */
 function BottomNav({ current }: { current: Tab }) {
   const t = useT();
   // On a tab switch the new page must be captured scrolled to the top, otherwise its header
@@ -29,8 +35,9 @@ function BottomNav({ current }: { current: Tab }) {
     if (document.documentElement.dataset.tabDir) window.scrollTo(0, 0);
   }, []);
   const { goTo } = useNavigation();
-  const tabs: { id: Tab; label: string; route: typeof ROUTES.home | typeof ROUTES.stats | typeof ROUTES.profile }[] = [
+  const tabs: { id: Tab; label: string; route: typeof ROUTES.home | typeof ROUTES.explore | typeof ROUTES.stats | typeof ROUTES.profile }[] = [
     { id: "trails", label: t("nav.trails"), route: ROUTES.home },
+    { id: "explore", label: t("nav.explore"), route: ROUTES.explore },
     { id: "stats", label: t("nav.stats"), route: ROUTES.stats },
     { id: "profile", label: t("nav.profile"), route: ROUTES.profile },
   ];
@@ -39,7 +46,7 @@ function BottomNav({ current }: { current: Tab }) {
     <nav
       aria-label={t("nav.label")}
       style={{ viewTransitionName: "bottom-nav" }}
-      className="sticky bottom-0 z-[1000] grid grid-cols-3 border-t border-line bg-surface px-5 pt-2 pb-5"
+      className="sticky bottom-0 z-[1000] grid grid-cols-4 border-t border-line bg-surface px-5 pt-2 pb-5"
     >
       {tabs.map((tab) => {
         const active = tab.id === current;

@@ -1,6 +1,7 @@
 mod database;
 mod identity;
 mod secrets;
+mod sharing;
 mod tracks;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -35,6 +36,13 @@ pub fn run() {
             identity::commands::nostr_sign_event,
             identity::commands::nostr_nip44_encrypt,
             identity::commands::nostr_nip44_decrypt,
+            sharing::commands::relays_list,
+            sharing::commands::relays_add,
+            sharing::commands::relays_remove,
+            sharing::commands::relays_reset,
+            sharing::commands::share_trail,
+            sharing::commands::unshare_trail,
+            sharing::commands::explore_trails,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

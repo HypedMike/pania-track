@@ -66,7 +66,8 @@ export function dayKey(d: Date): string {
 
 /** Planned trails haven't been walked, so they don't count toward stats. */
 export function toEntries(trails: Trail[]): TrailEntry[] {
-  return trails.filter((trail) => trail.source !== "planned").map((trail) => {
+  // Planned trails were not walked, and bookmarked ones are other people's: neither is your activity.
+  return trails.filter((trail) => trail.source !== "planned" && trail.source !== "bookmarked").map((trail) => {
     const stamp = trail.coordinates.find((c) => c.timestamp)?.timestamp;
     const parsed = stamp ? Date.parse(stamp) : NaN;
     const ms = Number.isNaN(parsed) ? trail.createdAt : parsed;

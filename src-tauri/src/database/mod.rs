@@ -27,5 +27,11 @@ pub fn migrations() -> Vec<Migration> {
             sql: include_str!("../../migrations/003_trail_activity.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "trail_sharing",
+            sql: include_str!("../../migrations/004_trail_sharing.sql"),
+            kind: MigrationKind::Up,
+        },
     ]
 }
