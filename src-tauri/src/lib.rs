@@ -1,3 +1,5 @@
+mod analysis;
+mod analysis_commands;
 mod database;
 mod identity;
 mod secrets;
@@ -31,6 +33,14 @@ pub fn run() {
     builder
         .invoke_handler(tauri::generate_handler![
             tracks::simplify::simplify_track,
+            analysis_commands::analyze_trail,
+            analysis_commands::pace_model,
+            analysis_commands::pace_profile,
+            analysis_commands::clean_track,
+            analysis_commands::group_routes,
+            analysis_commands::route_heatmap,
+            analysis_commands::time_patterns,
+            analysis_commands::review_tour,
             identity::commands::nostr_create_identity,
             identity::commands::nostr_import_identity,
             identity::commands::nostr_identity_npub,
