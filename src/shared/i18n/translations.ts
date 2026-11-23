@@ -435,6 +435,10 @@ export const en = {
   "tour.alert.title": "You left the trail",
   "tour.alert.text": "You are {m} m from the trail. Tap to see where to go.",
   "tour.backOnTrack": "Back on the trail",
+  // live stats (notification, Live Update, widget)
+  "live.recording": "Recording trail",
+  "live.climb": "Climb",
+  "live.done": "Done",
   "tour.warnings": "Warnings",
   "tour.noWarnings": "All good so far",
   "tour.warn.offTrack": "You are {m} m off the trail.",
@@ -880,6 +884,10 @@ export const it: Record<TranslationKey, string> = {
   "tour.alert.title": "Sei uscito dal percorso",
   "tour.alert.text": "Sei a {m} m dal percorso. Tocca per vedere dove andare.",
   "tour.backOnTrack": "Di nuovo sul percorso",
+  // live stats (notification, Live Update, widget)
+  "live.recording": "Registrazione sentiero",
+  "live.climb": "Salita",
+  "live.done": "Fatto",
   "tour.warnings": "Avvisi",
   "tour.noWarnings": "Tutto a posto finora",
   "tour.warn.offTrack": "Sei a {m} m dal percorso.",

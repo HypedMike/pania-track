@@ -26,6 +26,23 @@ export interface OffTrackGuard {
   text: string;
 }
 
+/**
+ * What the native side needs to show live stats in the status notification, the Android 16 Live
+ * Update and the widget. It computes the numbers itself from the GPS fixes, so they keep updating
+ * with the screen off.
+ */
+export interface LiveInfo {
+  mode: "recording" | "tour";
+  /** Notification and widget title: "Recording trail" or the name of the trail being followed. */
+  title: string;
+  /** Translated captions. */
+  labels: { distance: string; time: string; climb: string; left: string; arrival: string; done: string };
+  /** What a resumed recording already has, so the numbers carry on instead of restarting. */
+  baseDistanceM: number;
+  baseAscentM: number;
+  baseElapsedMs: number;
+}
+
 function toFix(p: NativePoint): GpsFix {
   return {
     latitude: p.latitude,
@@ -48,11 +65,15 @@ export const backgroundRecorder = {
    * Starts the service. With `offTrackGuard` it also watches the fixes against a trail and raises
    * a notification by itself when the person strays, which keeps working with the screen off.
    */
-  async start(intervalMs: number, offTrackGuard?: OffTrackGuard): Promise<void> {
+  async start(intervalMs: number, offTrackGuard?: OffTrackGuard, live?: LiveInfo): Promise<void> {
     // The notification permission only affects whether the status notification is visible.
     await invoke("plugin:trail-recorder|request_permissions").catch(() => undefined);
     await invoke("plugin:trail-recorder|start", {
-      options: { intervalMs, guardJson: offTrackGuard ? JSON.stringify(offTrackGuard) : null },
+      options: {
+        intervalMs,
+        guardJson: offTrackGuard ? JSON.stringify(offTrackGuard) : null,
+        liveJson: live ? JSON.stringify(live) : null,
+      },
     });
   },
 

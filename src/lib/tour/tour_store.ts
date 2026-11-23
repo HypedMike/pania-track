@@ -1,9 +1,10 @@
 import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { backgroundRecorder, type OffTrackGuard } from "../../shared/gps/background_recorder";
+import { backgroundRecorder, type LiveInfo, type OffTrackGuard } from "../../shared/gps/background_recorder";
 import { captureLock } from "../../shared/gps/capture_lock";
 import { gpsService, type GpsFix } from "../../shared/gps/gps_service";
+import { liveLabels } from "../../shared/gps/live_info";
 import { simplifyTrack } from "../../shared/gps/simplify_track";
 import { t } from "../../shared/i18n/i18n";
 import { notifyLocal, prepareLocalNotifications } from "../../shared/notify/local_notification";
@@ -151,6 +152,17 @@ function offTrackGuard(): OffTrackGuard {
   };
 }
 
+function liveInfo(trail: Trail | null): LiveInfo {
+  return {
+    mode: "tour",
+    title: trail?.name || t("tour.title"),
+    labels: liveLabels(),
+    baseDistanceM: 0,
+    baseAscentM: 0,
+    baseElapsedMs: 0,
+  };
+}
+
 export const useTourStore = create<TourState>()(
   persist(
     (set, get) => {
@@ -277,7 +289,7 @@ export const useTourStore = create<TourState>()(
           if (error) set({ error });
           // The service is gone while the tour is on (e.g. the system stopped it): start it again.
           if (!running && get().status === "active" && !error) {
-            await backgroundRecorder.start(TOUR_INTERVAL_MS, offTrackGuard());
+            await backgroundRecorder.start(TOUR_INTERVAL_MS, offTrackGuard(), liveInfo(get().trail));
           }
         } catch (e) {
           set({ error: message(e) });
@@ -301,7 +313,7 @@ export const useTourStore = create<TourState>()(
       }
 
       async function beginCapture() {
-        if (backgroundRecorder.supported) await backgroundRecorder.start(TOUR_INTERVAL_MS, offTrackGuard());
+        if (backgroundRecorder.supported) await backgroundRecorder.start(TOUR_INTERVAL_MS, offTrackGuard(), liveInfo(get().trail));
         stopTimer();
         const tick = backgroundRecorder.supported ? drainNative : pollPosition;
         void tick();

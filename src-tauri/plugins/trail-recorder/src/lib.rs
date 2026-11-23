@@ -38,6 +38,10 @@ pub struct StartOptions {
     /// it works with the screen off. See `OffTrackGuard.kt` for the format.
     #[serde(default)]
     pub guard_json: Option<String>,
+    /// Title, translated labels and starting numbers for the live stats shown in the status
+    /// notification, the Android 16 Live Update and the widget. See `LiveStats.kt` for the format.
+    #[serde(default)]
+    pub live_json: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

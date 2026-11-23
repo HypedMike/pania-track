@@ -19,6 +19,9 @@ class StartOptions {
 
     /** Off-track alert settings for a tour (see [OffTrackGuard]); null when recording a trail. */
     var guardJson: String? = null
+
+    /** Title, labels and starting numbers of the live stats (see [LiveStats]). */
+    var liveJson: String? = null
 }
 
 @TauriPlugin(
@@ -42,6 +45,7 @@ class TrailRecorderPlugin(private val activity: Activity) : Plugin(activity) {
         val intent = Intent(context, RecorderService::class.java)
             .putExtra(RecorderService.EXTRA_INTERVAL_MS, options.intervalMs)
             .putExtra(RecorderService.EXTRA_GUARD, guarding)
+            .putExtra(RecorderService.EXTRA_LIVE, options.liveJson)
         try {
             ContextCompat.startForegroundService(context, intent)
             invoke.resolve()
