@@ -15,6 +15,7 @@ pub const MAX_POINTS: usize = 100_000;
 pub struct Waypoint {
     pub latitude: f64,
     pub longitude: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub altitude: Option<f64>,
     #[serde(default)]
     pub name: String,
@@ -240,6 +241,14 @@ mod tests {
         assert_eq!(back.points[2].altitude, Some(150.5));
         assert!((back.points[0].latitude - 43.7).abs() < 1e-9);
         assert_eq!(back.waypoints, vec![Waypoint { name: "Rifugio <A&B>".into(), ..wpts[0].clone() }]);
+    }
+
+    #[test]
+    fn missing_altitude_is_left_out_of_json_not_null() {
+        let json = serde_json::to_string(&pt(1.0, 2.0, None)).unwrap();
+        assert!(!json.contains("altitude"), "{json}");
+        let w = Waypoint { latitude: 1.0, longitude: 2.0, altitude: None, name: "a".into() };
+        assert!(!serde_json::to_string(&w).unwrap().contains("altitude"));
     }
 
     #[test]

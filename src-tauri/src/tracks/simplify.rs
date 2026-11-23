@@ -17,6 +17,8 @@ const EARTH_RADIUS_M: f64 = 6_371_000.0;
 pub struct Point {
     pub latitude: f64,
     pub longitude: f64,
+    /// Omitted from JSON when absent, so the frontend sees `undefined`, not `null`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub altitude: Option<f64>,
 }
 

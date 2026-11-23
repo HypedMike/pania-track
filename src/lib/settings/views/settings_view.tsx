@@ -2,6 +2,7 @@ import logo from "../../../assets/icon/logo.png";
 import { openExternal, REPO_URL } from "../../../shared/app_info";
 import { useT } from "../../../shared/i18n/i18n";
 import { LANGUAGES, type Language } from "../../../shared/i18n/translations";
+import { ROUTES } from "../../../shared/router/routes";
 import { useNavigation } from "../../../shared/router/use_navigation";
 import {
   RECORD_INTERVALS_S,
@@ -76,7 +77,7 @@ function ExternalLink({ href, children, className }: { href: string; children: R
 }
 
 function SettingsView() {
-  const { goBack } = useNavigation();
+  const { goBack, goTo } = useNavigation();
   const t = useT();
   const {
     theme,
@@ -181,6 +182,20 @@ function SettingsView() {
             {t("settings.version", { version: __APP_VERSION__ })}
           </p>
         </section>
+
+        <button
+          type="button"
+          onClick={() => goTo(ROUTES.nostrSettings)}
+          className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4 text-left"
+        >
+          <span className="flex flex-col">
+            <span className="text-sm font-semibold">{t("settings.nostr")}</span>
+            <span className="text-sm text-muted">{t("settings.nostrHint")}</span>
+          </span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-muted">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
 
         <section aria-labelledby="about-title" className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
           <div className="flex items-center gap-3">

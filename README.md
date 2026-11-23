@@ -11,6 +11,9 @@ Website: https://hypedmike.github.io/pania-track/
 - **Export / share** any trail as GPX.
 - **Browse** trails filtered by source (recorded / imported), with a map preview per trail.
 - **Trail detail** with an OpenStreetMap-based map, elevation profile, and stat tiles (distance, duration, elevation).
+- **Share** a trail publicly over [Nostr](https://nostr.com) (after a confirmation): the track is simplified in Rust, signed with your profile key and sent to relays. Distance, climb and difficulty of what others share are always recomputed locally, never trusted.
+- **Explore** trails other people shared near you on a map, filtered by distance, length, difficulty and on foot / by bike, and **bookmark** them to your device. A bookmarked trail keeps its creator's name and public key.
+- **Profile**: a Nostr key pair created on the phone is your identity (the secret key stays in the Rust backend, encrypted with the Android Keystore).
 - **Settings** for theme (system / light / dark) and recording interval.
 
 ## Tech stack
@@ -64,6 +67,10 @@ Coordinates and waypoints are deleted with their trail (`ON DELETE CASCADE`).
 | `/import` | Import a GPX/KML file |
 | `/trails/:id` | Trail detail |
 | `/settings` | Settings |
+| `/settings/nostr` | Relays (defaults plus your own) |
+| `/explore` | Map and list of shared trails nearby |
+| `/explore/:eventId` | A shared trail, with the Bookmark button |
+| `/profile` | Profile (create, back up the key, remove) |
 
 ## Getting started
 

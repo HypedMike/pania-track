@@ -59,30 +59,6 @@ export async function simplifyTrack(
 }
 
 /**
- * Nostr tags describing the simplification, so anyone reading a published trail can judge it.
- * Values are strings, as Nostr requires. `distance`/`gain` are the real track's figures;
- * the `simplified_*` ones are what the published line measures.
- */
-export function simplificationTags(r: SimplifyReport): string[][] {
-  const tags: string[][] = [
-    ["original_points", String(r.originalPoints)],
-    ["points", String(r.keptPoints)],
-    ["removed_pct", String(r.removedPct)],
-    ["tolerance_m", String(r.toleranceM)],
-    ["error_max_m", String(r.maxErrorM)],
-    ["error_p95_m", String(r.p95ErrorM)],
-    ["error_mean_m", String(r.meanErrorM)],
-    ["distance_m", String(r.originalDistanceM)],
-    ["simplified_distance_m", String(r.simplifiedDistanceM)],
-  ];
-  if (r.originalGainM !== null && r.simplifiedGainM !== null) {
-    tags.push(["gain_m", String(r.originalGainM)], ["simplified_gain_m", String(r.simplifiedGainM)]);
-  }
-  if (r.maxAltitudeErrorM !== null) tags.push(["error_alt_max_m", String(r.maxAltitudeErrorM)]);
-  return tags;
-}
-
-/**
  * Rounds coordinates for compact storage: 5 decimals of latitude/longitude is about 1 m,
  * altitude to the nearest 0.1 m. Do this after simplifying, not before.
  */
