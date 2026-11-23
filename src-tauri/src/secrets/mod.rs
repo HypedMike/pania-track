@@ -1,10 +1,10 @@
-//! Where the app keeps its secrets, from the Rust side.
+//! Secret storage: where the app keeps its secrets, seen from Rust.
 //!
 //! On Android the `secret-store` plugin encrypts them with a key held in the Android Keystore.
 //! Elsewhere (desktop builds exist only for development) there is no keystore, so they fall
 //! back to a plain JSON file in the app config directory. Never ship that: it is not encrypted.
 //! The webview has no permission to call the plugin directly; only the commands in
-//! `identity_commands.rs` reach it.
+//! the feature modules that need a secret (see `identity::commands`) reach it.
 
 use std::{collections::HashMap, fs, path::PathBuf};
 use tauri::{AppHandle, Manager, Runtime};

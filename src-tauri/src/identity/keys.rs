@@ -2,7 +2,7 @@
 //!
 //! All of it lives here, in Rust, so the secret key never has to enter the webview except when
 //! the user explicitly asks to see it for a backup. This module is plain Rust (no Tauri) so it
-//! can be tested on its own; `identity_commands.rs` wires it to the app.
+//! can be tested on its own; `commands.rs` wires it to the app.
 
 use nostr::nips::nip44;
 use nostr::prelude::*;
