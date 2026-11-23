@@ -27,6 +27,20 @@ jobs:
         env:
           VITE_LATEST_RELEASE_URL: ${{ vars.VITE_LATEST_RELEASE_URL }}
 
+  # Unit tests of the Android plugin's pure logic, on a plain JVM (no Android SDK needed).
+  kotlin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test
+        working-directory: src-tauri/plugins/trail-recorder/android/jvm-tests
+        run: gradle test --no-daemon
+
   # Builds the Rust backend (desktop target) and runs its unit tests. The Android-only parts
   # (the Kotlin plugins) are compiled by the release workflow, not here.
   backend:

@@ -31,4 +31,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(project(":tauri-android"))
+
+    testImplementation("junit:junit:4.13.2")
+    // The Android jar only has stubs of org.json for unit tests; this is the real thing.
+    testImplementation("org.json:json:20240303")
 }

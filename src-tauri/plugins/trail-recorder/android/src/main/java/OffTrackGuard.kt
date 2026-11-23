@@ -24,7 +24,7 @@ import kotlin.math.min
 class OffTrackGuard private constructor(
     private val lat: DoubleArray,
     private val lon: DoubleArray,
-    private val thresholdM: Double,
+    val thresholdM: Double,
     val title: String,
     private val textTemplate: String,
 ) {
@@ -34,13 +34,32 @@ class OffTrackGuard private constructor(
     private var offTrack = false
     private var lastAlertAt = 0L
 
+    /** Cumulative length in meters from the start of the trail to each point. */
+    private val cumulativeM = DoubleArray(lat.size).also { cum ->
+        for (i in 1 until lat.size) {
+            val ky = METERS_PER_DEGREE
+            val kx = METERS_PER_DEGREE * cos(Math.toRadians((lat[i] + lat[i - 1]) / 2))
+            cum[i] = cum[i - 1] + hypot((lon[i] - lon[i - 1]) * kx, (lat[i] - lat[i - 1]) * ky)
+        }
+    }
+
+    /** Length of the whole trail in meters. */
+    val totalLengthM: Double get() = if (cumulativeM.isEmpty()) 0.0 else cumulativeM[cumulativeM.size - 1]
+
     /** Distance in meters from a position to the nearest point of the trail. */
-    fun distanceToTrail(latitude: Double, longitude: Double): Double {
-        if (lat.isEmpty()) return Double.MAX_VALUE
+    fun distanceToTrail(latitude: Double, longitude: Double): Double = project(latitude, longitude).first
+
+    /**
+     * Where a position falls on the trail: the distance to the trail and how far along it
+     * (meters from the start) the nearest point is.
+     */
+    fun project(latitude: Double, longitude: Double): Pair<Double, Double> {
+        if (lat.isEmpty()) return Double.MAX_VALUE to 0.0
         // Flat projection around the position: far more than accurate enough over a few km.
         val ky = METERS_PER_DEGREE
         val kx = METERS_PER_DEGREE * cos(Math.toRadians(latitude))
         var best = Double.MAX_VALUE
+        var bestAlong = 0.0
         for (i in 0 until lat.size - 1) {
             val ax = (lon[i] - longitude) * kx
             val ay = (lat[i] - latitude) * ky
@@ -50,10 +69,14 @@ class OffTrackGuard private constructor(
             val dy = by - ay
             val len2 = dx * dx + dy * dy
             val f = if (len2 > 0) max(0.0, min(1.0, -(ax * dx + ay * dy) / len2)) else 0.0
-            best = min(best, hypot(ax + dx * f, ay + dy * f))
+            val d = hypot(ax + dx * f, ay + dy * f)
+            if (d < best) {
+                best = d
+                bestAlong = cumulativeM[i] + (cumulativeM[i + 1] - cumulativeM[i]) * f
+            }
         }
         if (lat.size == 1) best = hypot((lon[0] - longitude) * kx, (lat[0] - latitude) * ky)
-        return best
+        return best to bestAlong
     }
 
     /**
@@ -114,7 +137,7 @@ class OffTrackGuard private constructor(
             null
         }
 
-        private fun parse(json: String): OffTrackGuard {
+        internal fun parse(json: String): OffTrackGuard {
             val o = JSONObject(json)
             val track = o.getJSONArray("track")
             require(track.length() > 0) { "Empty trail" }

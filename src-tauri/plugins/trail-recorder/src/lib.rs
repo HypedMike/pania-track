@@ -38,6 +38,10 @@ pub struct StartOptions {
     /// it works with the screen off. See `OffTrackGuard.kt` for the format.
     #[serde(default)]
     pub guard_json: Option<String>,
+    /// Title, translated labels and starting numbers for the live stats shown in the status
+    /// notification, the Android 16 Live Update and the widget. See `LiveStats.kt` for the format.
+    #[serde(default)]
+    pub live_json: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +64,15 @@ pub struct TakeResult {
     pub running: bool,
     /// Last error reported by the service (e.g. location turned off), if any.
     pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveUpdateStatus {
+    /// Android 16 or newer, where Live Updates exist.
+    pub supported: bool,
+    /// Whether the person has Live Updates turned on for the app.
+    pub enabled: bool,
 }
 
 #[cfg(target_os = "android")]
@@ -87,6 +100,12 @@ mod platform {
         }
         pub fn take_points(&self) -> Result<TakeResult> {
             Ok(self.0.run_mobile_plugin("takePoints", ())?)
+        }
+        pub fn live_update_status(&self) -> Result<LiveUpdateStatus> {
+            Ok(self.0.run_mobile_plugin("liveUpdateStatus", ())?)
+        }
+        pub fn open_live_update_settings(&self) -> Result<()> {
+            Ok(self.0.run_mobile_plugin("openLiveUpdateSettings", ())?)
         }
         pub fn request_permissions(&self) -> Result<serde_json::Value> {
             Ok(self
@@ -121,6 +140,12 @@ mod platform {
         pub fn take_points(&self) -> Result<TakeResult> {
             Err(Error::Unsupported)
         }
+        pub fn live_update_status(&self) -> Result<LiveUpdateStatus> {
+            Err(Error::Unsupported)
+        }
+        pub fn open_live_update_settings(&self) -> Result<()> {
+            Err(Error::Unsupported)
+        }
         pub fn request_permissions(&self) -> Result<serde_json::Value> {
             Err(Error::Unsupported)
         }
@@ -147,6 +172,16 @@ mod commands {
         app.state::<TrailRecorder<R>>().take_points()
     }
 
+    #[tauri::command]
+    pub async fn live_update_status<R: Runtime>(app: AppHandle<R>) -> Result<LiveUpdateStatus> {
+        app.state::<TrailRecorder<R>>().live_update_status()
+    }
+
+    #[tauri::command]
+    pub async fn open_live_update_settings<R: Runtime>(app: AppHandle<R>) -> Result<()> {
+        app.state::<TrailRecorder<R>>().open_live_update_settings()
+    }
+
     /// Asks for the notification permission the service's status notification needs (Android 13+).
     #[tauri::command]
     pub async fn request_permissions<R: Runtime>(app: AppHandle<R>) -> Result<serde_json::Value> {
@@ -160,7 +195,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::start,
             commands::stop,
             commands::take_points,
-            commands::request_permissions
+            commands::request_permissions,
+            commands::live_update_status,
+            commands::open_live_update_settings
         ])
         .setup(|app, api| {
             app.manage(platform::init(app, api)?);

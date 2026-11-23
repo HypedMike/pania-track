@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pania_widget_description">Live stats of the trail you are recording or following.</string>
+    <string name="pania_widget_idle">No recording or tour in progress. Tap to open Pania.</string>
+</resources>

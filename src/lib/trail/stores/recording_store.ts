@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { t } from "../../../shared/i18n/i18n";
-import { backgroundRecorder } from "../../../shared/gps/background_recorder";
+import { backgroundRecorder, type LiveInfo } from "../../../shared/gps/background_recorder";
+import { liveLabels } from "../../../shared/gps/live_info";
+import { computeStats } from "../../../shared/gps/trail_stats";
 import { captureLock } from "../../../shared/gps/capture_lock";
 import { gpsService, type GpsFix } from "../../../shared/gps/gps_service";
 import { recordIntervalMs } from "../../../shared/settings/settings_store";
@@ -67,6 +69,19 @@ function stopTimer() {
   timer = null;
 }
 
+/** Live stats context for the native notification and widget; a resumed recording carries on from what it has. */
+function liveInfo(state: { points: GpsCoordinate[]; accumulatedMs: number; resumedAt: number | null }): LiveInfo {
+  const stats = computeStats(state.points);
+  return {
+    mode: "recording",
+    title: t("live.recording"),
+    labels: liveLabels(),
+    baseDistanceM: stats.distanceM,
+    baseAscentM: stats.elevationGainM ?? 0,
+    baseElapsedMs: state.accumulatedMs + (state.resumedAt ? Date.now() - state.resumedAt : 0),
+  };
+}
+
 export const useRecordingStore = create<RecordingState>()(
   persist(
     (set, get) => {
@@ -90,7 +105,7 @@ export const useRecordingStore = create<RecordingState>()(
           else if (points.length > 0) set({ error: null });
           // The service is gone while we think we're recording (e.g. the system stopped it).
           if (!running && get().status === "recording" && !error) {
-            await backgroundRecorder.start(recordIntervalMs());
+            await backgroundRecorder.start(recordIntervalMs(), undefined, liveInfo(get()));
           }
         } catch (e) {
           set({ error: message(e) });
@@ -125,7 +140,7 @@ export const useRecordingStore = create<RecordingState>()(
       }
 
       async function beginCapture() {
-        if (backgroundRecorder.supported) await backgroundRecorder.start(recordIntervalMs());
+        if (backgroundRecorder.supported) await backgroundRecorder.start(recordIntervalMs(), undefined, liveInfo(get()));
         startTimer();
       }
 

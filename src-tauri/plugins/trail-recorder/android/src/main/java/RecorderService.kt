@@ -1,7 +1,6 @@
 package app.pania.trailrecorder
 
 import android.Manifest
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -31,10 +30,14 @@ class RecorderService : Service() {
         const val EXTRA_INTERVAL_MS = "intervalMs"
         /** True when the start request came with off-track settings for a tour. */
         const val EXTRA_GUARD = "guard"
-        private const val CHANNEL_ID = "trail_recording"
+        /** JSON with the title, labels and starting numbers for the live stats (see [LiveStats]). */
+        const val EXTRA_LIVE = "live"
         private const val ALERT_CHANNEL_ID = "tour_off_track"
         private const val NOTIFICATION_ID = 4711
         private const val ALERT_NOTIFICATION_ID = 4712
+        /** The notification and widget are redrawn at most this often. */
+        private const val NOTIFICATION_REFRESH_MS = 2_000L
+        private const val WIDGET_REFRESH_MS = 5_000L
     }
 
     /** Set while a tour is running; null while recording a trail. */
@@ -42,6 +45,8 @@ class RecorderService : Service() {
 
     private val client by lazy { LocationServices.getFusedLocationProviderClient(this) }
     private var updatesActive = false
+    private var lastNotificationAt = 0L
+    private var lastWidgetAt = 0L
 
     private val callback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -57,6 +62,15 @@ class RecorderService : Service() {
                     ),
                 )
                 guard?.let { checkOffTrack(it, location) }
+                val snapshot = LiveStats.onFix(
+                    applicationContext,
+                    location.latitude,
+                    location.longitude,
+                    if (location.hasAltitude()) location.altitude else null,
+                    if (location.hasAccuracy()) location.accuracy else null,
+                    location.time,
+                )
+                refreshLiveViews(snapshot)
             }
             PointBuffer.lastError = null
         }
@@ -67,6 +81,7 @@ class RecorderService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val interval = intent?.getLongExtra(EXTRA_INTERVAL_MS, 5_000L) ?: 5_000L
         guard = if (intent?.getBooleanExtra(EXTRA_GUARD, false) == true) OffTrackGuard.load(this) else null
+        val liveSnapshot = LiveStats.begin(this, intent?.getStringExtra(EXTRA_LIVE), guard)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
@@ -82,10 +97,12 @@ class RecorderService : Service() {
             } else {
                 0
             }
-            ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), type)
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, LiveNotification.build(this, liveSnapshot), type)
+            LiveWidgetProvider.refresh(this)
         } catch (e: Exception) {
             // Android refuses a location foreground service started while the app is in the background.
             PointBuffer.lastError = "Could not start background recording: ${e.message}"
+            LiveStats.end(this)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -115,7 +132,22 @@ class RecorderService : Service() {
         if (guard != null) getSystemService(NotificationManager::class.java).cancel(ALERT_NOTIFICATION_ID)
         guard = null
         PointBuffer.running = false
+        LiveStats.end(this)
+        LiveWidgetProvider.refresh(this)
         super.onDestroy()
+    }
+
+    /** Keeps the status notification and the widget in step with the latest numbers. */
+    private fun refreshLiveViews(snapshot: LiveStats.Snapshot) {
+        val now = System.currentTimeMillis()
+        if (now - lastNotificationAt >= NOTIFICATION_REFRESH_MS) {
+            lastNotificationAt = now
+            getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, LiveNotification.build(this, snapshot))
+        }
+        if (now - lastWidgetAt >= WIDGET_REFRESH_MS) {
+            lastWidgetAt = now
+            LiveWidgetProvider.refresh(this)
+        }
     }
 
     private fun checkOffTrack(guard: OffTrackGuard, location: android.location.Location) {
@@ -170,33 +202,5 @@ class RecorderService : Service() {
                 .setContentIntent(tap)
                 .build(),
         )
-    }
-
-    private fun buildNotification(): Notification {
-        val manager = getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Trail recording", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "Shown while a trail is being recorded"
-                    setShowBadge(false)
-                },
-            )
-        }
-        val launch = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val tap = launch?.let {
-            PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        }
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Recording trail")
-            .setContentText("Pania is saving your track. Tap to open.")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .setContentIntent(tap)
-            .build()
     }
 }

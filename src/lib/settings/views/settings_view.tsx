@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import logo from "../../../assets/icon/logo.png";
+import { backgroundRecorder } from "../../../shared/gps/background_recorder";
 import { openExternal, REPO_URL } from "../../../shared/app_info";
 import { useT } from "../../../shared/i18n/i18n";
 import { LANGUAGES, type Language } from "../../../shared/i18n/translations";
@@ -13,6 +15,23 @@ import {
 import PageHeader from "../../../shared/ui/layout/page_header";
 import { useRecordingStore } from "../../trail/stores/recording_store";
 import { useTourStore } from "../../tour/tour_store";
+
+/** True on Android 16+ when the person turned Live Updates off for the app. Checked again on return from the system settings. */
+function useLiveUpdatesOff(): boolean {
+  const [off, setOff] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const check = () =>
+      void backgroundRecorder.liveUpdateStatus().then((s) => alive && setOff(s.supported && !s.enabled));
+    check();
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, []);
+  return off;
+}
 
 function intervalLabel(seconds: number): string {
   return seconds < 60 ? `${seconds} s` : `${seconds / 60} min`;
@@ -101,6 +120,7 @@ function SettingsView() {
   ];
   const recording = useRecordingStore((s) => s.status === "recording");
   const touring = useTourStore((s) => s.status === "active");
+  const liveUpdatesOff = useLiveUpdatesOff();
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col">
@@ -183,6 +203,22 @@ function SettingsView() {
           />
           {touring && <p className="text-sm text-muted">{t("settings.tourInProgress")}</p>}
         </section>
+
+        {liveUpdatesOff && (
+          <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+            <div>
+              <h2 className="text-sm font-semibold">{t("settings.liveUpdates")}</h2>
+              <p className="text-sm text-muted">{t("settings.liveUpdatesHint")}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void backgroundRecorder.openLiveUpdateSettings().catch(() => undefined)}
+              className="min-h-11 rounded-xl border border-line px-4 text-sm font-semibold"
+            >
+              {t("settings.liveUpdatesOpen")}
+            </button>
+          </section>
+        )}
 
         <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
           <div>
