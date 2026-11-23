@@ -1,13 +1,18 @@
 //! In-app updates on Android: download a release APK and hand it to the system installer.
 //!
-//! Android always asks the user to confirm an install, and refuses an APK that is not signed
-//! with the same key as the installed app. Other platforms report `Unsupported`; the frontend
-//! then falls back to opening the download link in the browser.
+//! The download itself happens here, in Rust, with progress reported to the webview; the
+//! Android-only parts (the install permission, the installer screen) are in Kotlin. Android
+//! always asks the user to confirm an install, and refuses an APK that is not signed with the
+//! same key as the installed app. Other platforms report `Unsupported`; the frontend then
+//! falls back to opening the download link in the browser.
 
+mod download;
+mod progress;
 mod url;
 
 use serde::{Deserialize, Serialize};
 use tauri::{
+    ipc::Channel,
     plugin::{Builder, TauriPlugin},
     AppHandle, Manager, Runtime,
 };
@@ -18,6 +23,8 @@ pub enum Error {
     Unsupported,
     #[error("{0}")]
     InvalidUrl(String),
+    #[error("{0}")]
+    Download(String),
     #[cfg(target_os = "android")]
     #[error(transparent)]
     PluginInvoke(#[from] tauri::plugin::mobile::PluginInvokeError),
@@ -40,9 +47,21 @@ pub struct InstallStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DownloadArgs {
-    pub url: String,
+pub struct UpdateDir {
+    /// Absolute path of the app-private folder the installer is allowed to read APKs from.
+    pub path: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallArgs {
+    pub path: String,
+}
+
+pub use progress::Progress;
+
+/// File name of the downloaded update inside [`UpdateDir`].
+const APK_NAME: &str = "pania-update.apk";
 
 #[cfg(target_os = "android")]
 mod platform {
@@ -67,8 +86,11 @@ mod platform {
         pub fn open_install_settings(&self) -> Result<()> {
             Ok(self.0.run_mobile_plugin("openInstallSettings", ())?)
         }
-        pub fn download_and_install(&self, args: DownloadArgs) -> Result<()> {
-            Ok(self.0.run_mobile_plugin("downloadAndInstall", args)?)
+        pub fn update_dir(&self) -> Result<UpdateDir> {
+            Ok(self.0.run_mobile_plugin("updateDir", ())?)
+        }
+        pub fn install(&self, args: InstallArgs) -> Result<()> {
+            Ok(self.0.run_mobile_plugin("install", args)?)
         }
     }
 }
@@ -95,7 +117,10 @@ mod platform {
         pub fn open_install_settings(&self) -> Result<()> {
             Err(Error::Unsupported)
         }
-        pub fn download_and_install(&self, _args: DownloadArgs) -> Result<()> {
+        pub fn update_dir(&self) -> Result<UpdateDir> {
+            Err(Error::Unsupported)
+        }
+        pub fn install(&self, _args: InstallArgs) -> Result<()> {
             Err(Error::Unsupported)
         }
     }
@@ -117,12 +142,28 @@ mod commands {
         app.state::<AppInstaller<R>>().open_install_settings()
     }
 
-    /// Downloads a release APK and opens the system installer on it. The address is checked
-    /// here first; the native side never sees one that is not a release asset of this project.
+    /// Downloads a release APK, reporting progress on `on_progress`, then opens the system
+    /// installer on it. The address is checked here first; nothing else is ever downloaded.
     #[tauri::command]
-    pub async fn download_and_install<R: Runtime>(app: AppHandle<R>, url: String) -> Result<()> {
+    pub async fn download_and_install<R: Runtime>(
+        app: AppHandle<R>,
+        url: String,
+        on_progress: Channel<Progress>,
+    ) -> Result<()> {
         super::url::validate_download_url(&url).map_err(Error::InvalidUrl)?;
-        app.state::<AppInstaller<R>>().download_and_install(DownloadArgs { url })
+        let dir = app.state::<AppInstaller<R>>().update_dir()?;
+        let target = std::path::Path::new(&dir.path).join(APK_NAME);
+        // Blocking network and disk work, off the async runtime's threads.
+        let apk = target.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            super::download::download(&url, &apk, &super::download::Policy::github_releases(), |p| {
+                let _ = on_progress.send(p);
+            })
+        })
+        .await
+        .map_err(|e| Error::Download(e.to_string()))?
+        .map_err(Error::Download)?;
+        app.state::<AppInstaller<R>>().install(InstallArgs { path: target.to_string_lossy().into_owned() })
     }
 }
 

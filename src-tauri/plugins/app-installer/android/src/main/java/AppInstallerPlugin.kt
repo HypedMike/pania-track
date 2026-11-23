@@ -13,26 +13,26 @@ import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 
 class UpdateFileProvider : FileProvider()
 
 @InvokeArg
-class DownloadArgs {
-    lateinit var url: String
+class InstallArgs {
+    lateinit var path: String
 }
 
 /**
- * Downloads a release APK into the app cache and opens Android's installer on it.
+ * The Android-only half of in-app updates: the install permission, the folder the installer may
+ * read from, and the installer screen. The download itself is done in Rust (`download.rs`), which
+ * also validates the address and where redirects go.
  *
- * The address was already checked in Rust (`url.rs`); this re-checks where redirects end up,
- * and that the file really is an APK of this app. Android itself still asks the user to confirm
- * and only installs an APK signed with the same key as the installed app.
+ * Android still asks the user to confirm the install and only installs an APK signed with the
+ * same key as the installed app.
  */
 @TauriPlugin
 class AppInstallerPlugin(private val activity: Activity) : Plugin(activity) {
     private val context get() = activity.applicationContext
+    private val updateDir get() = File(context.cacheDir, "updates")
 
     @Command
     fun canInstall(invoke: Invoke) {
@@ -57,61 +57,37 @@ class AppInstallerPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /** The folder Rust downloads into. Created, and emptied so only the latest download is kept. */
     @Command
-    fun downloadAndInstall(invoke: Invoke) {
-        val args = invoke.parseArgs(DownloadArgs::class.java)
-        // Off the main thread: the download can take a while.
-        Thread {
-            try {
-                val apk = download(args.url)
-                checkIsThisApp(apk)
-                install(apk)
-                invoke.resolve()
-            } catch (e: Exception) {
-                invoke.reject("Update failed: ${e.message}")
-            }
-        }.start()
+    fun updateDir(invoke: Invoke) {
+        try {
+            val dir = updateDir.apply { mkdirs() }
+            dir.listFiles()?.forEach { it.delete() }
+            val result = JSObject()
+            result.put("path", dir.absolutePath)
+            invoke.resolve(result)
+        } catch (e: Exception) {
+            invoke.reject("Could not prepare the update folder: ${e.message}")
+        }
     }
 
-    private fun download(address: String): File {
-        val dir = File(context.cacheDir, "updates").apply { mkdirs() }
-        dir.listFiles()?.forEach { it.delete() } // only ever keep the latest download
-        val target = File(dir, "pania-update.apk")
-
-        val connection = URL(address).openConnection() as HttpURLConnection
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 30_000
-        connection.instanceFollowRedirects = true
+    @Command
+    fun install(invoke: Invoke) {
         try {
-            connection.connect()
-            check(connection.responseCode == HttpURLConnection.HTTP_OK) { "server answered ${connection.responseCode}" }
-            // Redirects must stay on GitHub over https (release assets are served from its CDN).
-            val finalUrl = connection.url
-            val host = finalUrl.host
-            check(finalUrl.protocol == "https" && (host == "github.com" || host.endsWith(".githubusercontent.com"))) {
-                "unexpected download host"
-            }
-            var total = 0L
-            connection.inputStream.use { input ->
-                target.outputStream().use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        val n = input.read(buffer)
-                        if (n < 0) break
-                        total += n
-                        check(total <= MAX_APK_BYTES) { "file is larger than expected" }
-                        output.write(buffer, 0, n)
-                    }
-                }
-            }
-            check(total > 0) { "empty download" }
+            val args = invoke.parseArgs(InstallArgs::class.java)
+            val apk = File(args.path).canonicalFile
+            // Only ever install something from the update folder.
+            check(apk.parentFile == updateDir.canonicalFile && apk.isFile) { "unexpected file" }
+            checkIsThisApp(apk)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.updates", apk)
+            val intent = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            activity.runOnUiThread { activity.startActivity(intent) }
+            invoke.resolve()
         } catch (e: Exception) {
-            target.delete()
-            throw e
-        } finally {
-            connection.disconnect()
+            invoke.reject("Could not start the installer: ${e.message}")
         }
-        return target
     }
 
     @Suppress("DEPRECATION")
@@ -119,17 +95,5 @@ class AppInstallerPlugin(private val activity: Activity) : Plugin(activity) {
         val info = context.packageManager.getPackageArchiveInfo(apk.path, 0)
         checkNotNull(info) { "the download is not a valid APK" }
         check(info.packageName == context.packageName) { "the download is a different app" }
-    }
-
-    private fun install(apk: File) {
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.updates", apk)
-        val intent = Intent(Intent.ACTION_VIEW)
-            .setDataAndType(uri, "application/vnd.android.package-archive")
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        activity.runOnUiThread { activity.startActivity(intent) }
-    }
-
-    private companion object {
-        const val MAX_APK_BYTES = 200L * 1024 * 1024
     }
 }

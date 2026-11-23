@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "../i18n/i18n";
 import { useSettingsStore } from "../settings/settings_store";
 import { appInstaller } from "./app_installer";
+import { describeProgress, percent, type DownloadProgress } from "./format_progress";
 import {
   fetchLatestRelease,
   isNewerVersion,
@@ -18,6 +19,7 @@ function UpdatePrompt() {
   const [release, setRelease] = useState<LatestRelease | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState<DownloadProgress | null>(null);
 
   useEffect(() => {
     if (!LATEST_RELEASE_URL || !useSettingsStore.getState().checkForUpdates) return;
@@ -55,8 +57,9 @@ function UpdatePrompt() {
         setPhase("needsPermission");
         return;
       }
+      setProgress(null);
       setPhase("downloading");
-      await appInstaller.downloadAndInstall(release.downloadUrl);
+      await appInstaller.downloadAndInstall(release.downloadUrl, setProgress);
       // The system installer is on screen now; it takes it from here.
       setRelease(null);
       setPhase("idle");
@@ -83,6 +86,7 @@ function UpdatePrompt() {
     setPhase("idle");
   };
   const downloading = phase === "downloading";
+  const pct = progress ? percent(progress) : null;
 
   return (
     <div
@@ -106,6 +110,28 @@ function UpdatePrompt() {
                   : t("update.message", { version: release.version, current: __APP_VERSION__ })}
           </p>
         </div>
+        {downloading && (
+          <div className="flex flex-col gap-2">
+            <div
+              role="progressbar"
+              aria-label={t("update.downloadingShort")}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={pct ?? undefined}
+              className="h-2.5 overflow-hidden rounded-full bg-line"
+            >
+              <div
+                style={{ width: `${pct ?? 100}%` }}
+                className={`h-full rounded-full bg-brand transition-[width] duration-150 motion-reduce:transition-none ${
+                  pct === null ? "motion-safe:animate-pulse" : ""
+                }`}
+              />
+            </div>
+            <p aria-live="off" className="text-xs text-muted tabular-nums">
+              {progress ? describeProgress(progress, t) : t("update.starting")}
+            </p>
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           {phase === "needsPermission" ? (
             <button

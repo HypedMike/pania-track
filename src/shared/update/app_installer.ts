@@ -1,8 +1,9 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
+import type { DownloadProgress } from "./format_progress";
 
 /**
- * In-app updates (Android only): the native `app-installer` plugin downloads a release APK and
- * opens the system installer on it. Android still asks the user to confirm the install.
+ * In-app updates (Android only). The Rust backend downloads the release APK, reporting progress,
+ * and the native plugin opens the system installer on it. Android still asks the user to confirm.
  */
 export const appInstaller = {
   /** Only Android has the native plugin; elsewhere the update link opens in the browser. */
@@ -17,6 +18,13 @@ export const appInstaller = {
   /** Opens the system screen where that permission is granted. */
   openInstallSettings: () => invoke<void>("plugin:app-installer|open_install_settings"),
 
-  /** Downloads the release APK at `url` and opens the installer. Resolves once the installer is up. */
-  downloadAndInstall: (url: string) => invoke<void>("plugin:app-installer|download_and_install", { url }),
+  /**
+   * Downloads the release APK at `url` and opens the installer. `onProgress` is called as bytes
+   * arrive; the promise resolves once the installer is on screen.
+   */
+  downloadAndInstall(url: string, onProgress: (progress: DownloadProgress) => void): Promise<void> {
+    const channel = new Channel<DownloadProgress>();
+    channel.onmessage = onProgress;
+    return invoke<void>("plugin:app-installer|download_and_install", { url, onProgress: channel });
+  },
 };
