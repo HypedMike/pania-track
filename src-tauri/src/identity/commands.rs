@@ -3,7 +3,7 @@
 
 use super::keys::{self, UnsignedEvent};
 use crate::secrets;
-use nostr::Keys;
+use nostr::prelude::Keys;
 use tauri::{AppHandle, Runtime};
 
 const SECRET_NAME: &str = "nostr-nsec";

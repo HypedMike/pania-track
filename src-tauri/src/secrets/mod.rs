@@ -35,6 +35,8 @@ fn write_dev<R: Runtime>(app: &AppHandle<R>, secrets: &HashMap<String, String>) 
     Ok(())
 }
 
+// On desktop `Error` has only `Unsupported`, so the catch-all arm is Android-only.
+#[cfg_attr(not(target_os = "android"), allow(unreachable_patterns))]
 pub fn get<R: Runtime>(app: &AppHandle<R>, key: &str) -> Result<Option<String>, String> {
     match app.state::<SecretStore<R>>().get(KeyArgs { key: key.into() }) {
         Ok(result) => Ok(result.value),
@@ -43,6 +45,8 @@ pub fn get<R: Runtime>(app: &AppHandle<R>, key: &str) -> Result<Option<String>, 
     }
 }
 
+// On desktop `Error` has only `Unsupported`, so the catch-all arm is Android-only.
+#[cfg_attr(not(target_os = "android"), allow(unreachable_patterns))]
 pub fn set<R: Runtime>(app: &AppHandle<R>, key: &str, value: &str) -> Result<(), String> {
     match app.state::<SecretStore<R>>().set(SetArgs { key: key.into(), value: value.into() }) {
         Ok(()) => Ok(()),
@@ -55,6 +59,8 @@ pub fn set<R: Runtime>(app: &AppHandle<R>, key: &str, value: &str) -> Result<(),
     }
 }
 
+// On desktop `Error` has only `Unsupported`, so the catch-all arm is Android-only.
+#[cfg_attr(not(target_os = "android"), allow(unreachable_patterns))]
 pub fn delete<R: Runtime>(app: &AppHandle<R>, key: &str) -> Result<(), String> {
     match app.state::<SecretStore<R>>().delete(KeyArgs { key: key.into() }) {
         Ok(()) => Ok(()),
