@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { analysisApi, toFixes, type Fix, type PaceProfile } from "../../shared/analysis/analysis_api";
 import { backgroundRecorder, type LiveInfo, type OffTrackGuard } from "../../shared/gps/background_recorder";
 import { captureLock } from "../../shared/gps/capture_lock";
 import { gpsService, type GpsFix } from "../../shared/gps/gps_service";
@@ -13,6 +14,8 @@ import { fetchForecast, type HourForecast } from "../../shared/weather/open_mete
 import { trailRepository } from "../trail/repositories/trail_repository";
 import type { Trail } from "../trail/interfaces/trail";
 import { OffTrackMonitor } from "./off_track_monitor";
+import { profileSpeedMs } from "./pace_eta";
+import { tourRunRepository } from "./tour_run_repository";
 import {
   averageSpeedMs,
   chooseSpeedMs,
@@ -42,6 +45,10 @@ const ANNOUNCE_COOLDOWN_MS = 10 * 60_000;
 /** Points sent to the native off-track guard are thinned to within this many meters of the trail. */
 const GUARD_TOLERANCE_M = 5;
 const GUARD_MAX_POINTS = 4_000;
+/** The slope-aware plan needs this many legs of the person's own recordings to be worth using. */
+const MIN_MODEL_LEGS = 20;
+/** A tour with fewer fixes than this was an accidental start and is not kept. */
+const MIN_RUN_FIXES = 15;
 
 type Status = "idle" | "active";
 
@@ -53,6 +60,8 @@ interface TourState {
   startedAt: number | null;
   /** The time the person wants to arrive by, ms since the epoch. */
   targetArrivalMs: number | null;
+  /** The saved record of this tour, for looking back at it. */
+  runId: string | null;
 
   /** Latest GPS reading. */
   current: GpsFix | null;
@@ -66,8 +75,8 @@ interface TourState {
   error: string | null;
 
   start: (trail: Trail, targetArrivalMs: number | null) => Promise<void>;
-  /** Ends the tour and stops GPS capture. */
-  stop: () => Promise<void>;
+  /** Ends the tour and stops GPS capture. Resolves to the id of the saved tour, or null when none was kept. */
+  stop: () => Promise<string | null>;
   /** Picks a restored tour back up after the webview was recreated. */
   reattach: () => Promise<void>;
 }
@@ -78,6 +87,7 @@ const INITIAL = {
   trail: null,
   startedAt: null,
   targetArrivalMs: null,
+  runId: null,
   current: null,
   lastFixMs: null,
   guidance: null,
@@ -98,6 +108,10 @@ let starting = false;
 let index: TrackIndex | null = null;
 let guardTrack: [number, number][] = [];
 let plannedMs = 0;
+/** What the person's own pace model expects of each stretch of this trail, when there is one. */
+let paceProfile: PaceProfile | null = null;
+/** Fixes not yet written to the saved tour. */
+let pendingFixes: Fix[] = [];
 let samples: ProgressSample[] = [];
 let firstSample: ProgressSample | null = null;
 let lastAlongM: number | undefined;
@@ -117,6 +131,8 @@ function stopTimer() {
 function resetWorkingState() {
   index = null;
   guardTrack = [];
+  paceProfile = null;
+  pendingFixes = [];
   samples = [];
   firstSample = null;
   lastAlongM = undefined;
@@ -150,6 +166,32 @@ function offTrackGuard(): OffTrackGuard {
     title: t("tour.alert.title"),
     text: t("tour.alert.text", { m: "{m}" }),
   };
+}
+
+/**
+ * The slope-aware plan for a trail: how long each stretch should take for this person, from their
+ * own recordings of the same activity. `null` when there is too little to go on or the backend
+ * is not there (plain browser); the tour then uses the constant planned speed.
+ */
+async function buildPaceProfile(trail: Trail): Promise<PaceProfile | null> {
+  try {
+    const recorded = (await trailRepository.getAll()).filter(
+      (tr) => tr.activity === trail.activity && tr.coordinates.some((c) => c.timestamp),
+    );
+    const model = await analysisApi.paceModel(recorded, trail.activity);
+    if (model.legsUsed < MIN_MODEL_LEGS) return null;
+    return await analysisApi.paceProfile(trail.coordinates, model);
+  } catch {
+    return null;
+  }
+}
+
+/** Writes the fixes collected since the last time to the saved tour. Failures are not worth interrupting a tour for. */
+function flushRunFixes(runId: string | null) {
+  if (!runId || pendingFixes.length === 0) return;
+  const batch = pendingFixes;
+  pendingFixes = [];
+  void tourRunRepository.appendFixes(runId, batch).catch(() => undefined);
 }
 
 function liveInfo(trail: Trail | null): LiveInfo {
@@ -194,6 +236,8 @@ export const useTourStore = create<TourState>()(
         }
         const cutoff = now - 10 * 60_000;
         if (samples.length > 0 && samples[0].time < cutoff) samples = samples.filter((s) => s.time >= cutoff);
+        pendingFixes.push(...toFixes(fixes));
+        flushRunFixes(get().runId);
         const last = fixes[fixes.length - 1];
         set({ current: last, lastFixMs: last.timestamp ? Date.parse(last.timestamp) : now, error: null });
         evaluate();
@@ -217,7 +261,13 @@ export const useTourStore = create<TourState>()(
         if (!trail || !index || !current || lastFixMs === null) return;
         const now = Date.now();
         const live = recentSpeedMs(samples, now);
-        const speedMs = chooseSpeedMs(live, averageSpeedMs(firstSample, samples[samples.length - 1] ?? null), plannedMs);
+        let speedMs = chooseSpeedMs(live, averageSpeedMs(firstSample, samples[samples.length - 1] ?? null), plannedMs);
+        // With the person's own pace model, the rest of the trail is timed stretch by stretch
+        // (a climb ahead takes longer), scaled by how today is going against the model.
+        if (paceProfile && firstSample && lastAlongM !== undefined) {
+          const fromModel = profileSpeedMs(paceProfile, lastAlongM, firstSample.alongM, (now - firstSample.time) / 1000);
+          if (fromModel !== null) speedMs = fromModel;
+        }
         const guidance = computeGuidance({
           index,
           waypoints: trail.waypoints,
@@ -339,7 +389,29 @@ export const useTourStore = create<TourState>()(
             if (backgroundRecorder.supported) await backgroundRecorder.takePoints().catch(() => undefined);
             setupTrail(trail);
             guardTrack = await prepareGuardTrack(trail);
-            set({ ...INITIAL, status: "active", trailId: trail.id, trail, startedAt: Date.now(), targetArrivalMs });
+            paceProfile = await buildPaceProfile(trail);
+            // The plan made now is kept with the tour, so it can be compared with what happened.
+            const startedAt = Date.now();
+            const run = {
+              id: crypto.randomUUID(),
+              trailId: trail.id,
+              startedAt,
+              endedAt: null,
+              plannedSpeedMs: plannedMs,
+              planProfile: paceProfile,
+              targetArrivalMs,
+              finished: false,
+            };
+            const saved = await tourRunRepository.create(run).then(() => true, () => false);
+            set({
+              ...INITIAL,
+              status: "active",
+              trailId: trail.id,
+              trail,
+              startedAt,
+              targetArrivalMs,
+              runId: saved ? run.id : null,
+            });
             await beginCapture();
           } catch (e) {
             stopTimer();
@@ -352,8 +424,23 @@ export const useTourStore = create<TourState>()(
         },
 
         stop: async () => {
+          const { runId, guidance } = get();
           stopTimer();
           captureLock.release("tour");
+          // Close the saved tour: a few fixes are an accidental start and are not worth keeping.
+          let keptRunId: string | null = null;
+          if (runId) {
+            try {
+              const batch = pendingFixes;
+              pendingFixes = [];
+              await tourRunRepository.appendFixes(runId, batch);
+              await tourRunRepository.end(runId, guidance?.arrived === true);
+              if ((await tourRunRepository.countFixes(runId)) >= MIN_RUN_FIXES) keptRunId = runId;
+              else await tourRunRepository.remove(runId);
+            } catch {
+              // Not being able to save the record must not keep the tour from ending.
+            }
+          }
           resetWorkingState();
           toast.dismiss("tour-off-track");
           set({ ...INITIAL });
@@ -361,10 +448,11 @@ export const useTourStore = create<TourState>()(
             await backgroundRecorder.stop().catch(() => undefined);
             await backgroundRecorder.takePoints().catch(() => undefined);
           }
+          return keptRunId;
         },
 
         reattach: async () => {
-          const { trailId } = get();
+          const { trailId, runId } = get();
           if (!trailId) return;
           captureLock.claim("tour");
           try {
@@ -375,6 +463,8 @@ export const useTourStore = create<TourState>()(
             }
             setupTrail(trail);
             guardTrack = await prepareGuardTrack(trail);
+            // The plan made at the start stays the plan, so the arrival time does not jump.
+            paceProfile = runId ? ((await tourRunRepository.get(runId))?.planProfile ?? null) : null;
             set({ trail });
             await beginCapture();
           } catch (e) {
@@ -387,7 +477,7 @@ export const useTourStore = create<TourState>()(
       // Keeps the tour if the webview is recreated (app swiped away, process restarted).
       name: "pania.tour",
       storage: createJSONStorage(() => localStorage),
-      partialize: ({ status, trailId, startedAt, targetArrivalMs }) => ({ status, trailId, startedAt, targetArrivalMs }),
+      partialize: ({ status, trailId, startedAt, targetArrivalMs, runId }) => ({ status, trailId, startedAt, targetArrivalMs, runId }),
       onRehydrateStorage: () => (state) => {
         if (state && state.status === "active") void state.reattach();
       },

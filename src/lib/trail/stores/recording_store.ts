@@ -56,6 +56,11 @@ function message(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+/** A track point keeps its GPS accuracy (rounded), so the recording's quality can be judged later. */
+function toTrackPoint(fix: GpsFix): GpsCoordinate {
+  return fix.accuracy === undefined ? fix : { ...fix, accuracy: Math.round(fix.accuracy * 10) / 10 };
+}
+
 function stripAccuracy({ accuracy: _accuracy, ...point }: GpsFix): GpsCoordinate {
   return point;
 }
@@ -90,7 +95,7 @@ export const useRecordingStore = create<RecordingState>()(
         if (fixes.length === 0) return;
         set((s) => ({
           current: fixes[fixes.length - 1],
-          points: keep ? [...s.points, ...fixes.map(stripAccuracy)] : s.points,
+          points: keep ? [...s.points, ...fixes.map(toTrackPoint)] : s.points,
         }));
       }
 
