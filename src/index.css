@@ -155,41 +155,9 @@ html[data-nav-direction="back"]::view-transition-new(root) {
     transform: translateX(-12px);
   }
 }
-/* Tab switches (Trails <-> Stats) slide in the direction of the tab; the tab bar stays put. */
-:root[data-tab-dir]::view-transition-old(root) {
-  animation: tab-out-left 280ms ease-in-out both;
-}
-:root[data-tab-dir]::view-transition-new(root) {
-  animation: tab-in-right 280ms ease-in-out both;
-}
-:root[data-tab-dir="back"]::view-transition-old(root) {
-  animation-name: tab-out-right;
-}
-:root[data-tab-dir="back"]::view-transition-new(root) {
-  animation-name: tab-in-left;
-}
+/* The tab bar stays put while a page transition runs behind it. */
 ::view-transition-group(bottom-nav) {
   animation-duration: 0s;
-}
-@keyframes tab-out-left {
-  to {
-    transform: translateX(-100%);
-  }
-}
-@keyframes tab-in-right {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes tab-out-right {
-  to {
-    transform: translateX(100%);
-  }
-}
-@keyframes tab-in-left {
-  from {
-    transform: translateX(-100%);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
