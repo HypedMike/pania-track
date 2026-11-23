@@ -157,9 +157,9 @@ object LiveNotification {
                 .setUsesChronometer(true)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setContentIntent(tap)
-            requestPromotion(builder)
+            LiveNotification.requestPromotion(builder)
             // Compact "chip" text; the guide suggests at most 7 characters.
-            if (c.chip.isNotEmpty()) callIfPresent(builder, "setShortCriticalText", String::class.java, c.chip)
+            if (c.chip.isNotEmpty()) LiveNotification.callIfPresent(builder, "setShortCriticalText", String::class.java, c.chip)
             return builder.build()
         }
     }
