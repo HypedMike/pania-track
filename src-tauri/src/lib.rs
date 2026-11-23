@@ -45,6 +45,9 @@ pub fn run() {
     // Records tracks in an Android foreground service so recording survives the screen turning off.
     let builder = builder.plugin(tauri_plugin_trail_recorder::init());
 
+    // Keeps the Nostr secret key encrypted with a key held in the Android Keystore.
+    let builder = builder.plugin(tauri_plugin_secret_store::init());
+
     builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2834,6 +2834,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-geolocation",
  "tauri-plugin-opener",
+ "tauri-plugin-secret-store",
  "tauri-plugin-sql",
  "tauri-plugin-trail-recorder",
 ]
@@ -4504,6 +4505,17 @@ dependencies = [
  "url",
  "windows",
  "zbus",
+]
+
+[[package]]
+name = "tauri-plugin-secret-store"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
