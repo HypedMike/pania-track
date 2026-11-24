@@ -36,6 +36,8 @@ void main() {
         child: const PaniaApp(),
       ),
     );
+    // The splash plays first, then hands over to Home.
+    await tester.pump(const Duration(milliseconds: 4000));
     await tester.pump(const Duration(milliseconds: 300));
 
     // Home: empty list, the three actions.

@@ -6,9 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/router/routes.dart';
+import 'pania_terrain.dart';
 
-/// Splash screen: a terrain "map" made of particles that scatter in, assemble, and slowly rotate
-/// in 3D, with a glowing trail running over the hills.
+/// Splash screen: Pania della Croce, built from real elevation data as particles that scatter in,
+/// assemble, and slowly rotate in 3D, with a glowing trail climbing to the summit.
 class SplashView extends StatefulWidget {
   const SplashView({super.key, this.replay = false});
 
@@ -23,17 +24,28 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
   static const _total = Duration(milliseconds: 3600);
   late final AnimationController _controller = AnimationController(vsync: this, duration: _total);
 
+  PaniaTerrain? _terrain;
+
   @override
   void initState() {
     super.initState();
-    _controller.forward().whenComplete(() {
-      if (!mounted) return;
-      if (widget.replay) {
-        _close();
-      } else {
-        context.go(Routes.home);
-      }
-    });
+    _start();
+  }
+
+  Future<void> _start() async {
+    try {
+      _terrain = await PaniaTerrain.load();
+    } catch (_) {
+      // Without the terrain there is nothing to show: carry on to the app.
+    }
+    if (!mounted) return;
+    if (_terrain != null) await _controller.forward();
+    if (!mounted) return;
+    if (widget.replay) {
+      _close();
+    } else {
+      context.go(Routes.home);
+    }
   }
 
   void _close() {
@@ -70,6 +82,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                 children: [
                   CustomPaint(
                     painter: _TerrainPainter(
+                      terrain: _terrain,
                       seconds: t * _total.inMilliseconds / 1000,
                       progress: t,
                       color: scheme.primary,
@@ -98,31 +111,42 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
 }
 
 class _TerrainPainter extends CustomPainter {
-  _TerrainPainter({required this.seconds, required this.progress, required this.color, required this.accent});
+  _TerrainPainter({
+    required this.terrain,
+    required this.seconds,
+    required this.progress,
+    required this.color,
+    required this.accent,
+  });
 
+  final PaniaTerrain? terrain;
   final double seconds;
   final double progress;
   final Color color;
   final Color accent;
 
-  static const _n = 56;
   static const _trailCount = 90;
   static const _buckets = 5;
+  static const _bands = 3;
 
-  static double _height(double x, double z) {
+  /// Vertical size of the summit above the base, in the same units as the 2-wide ground square.
+  /// The real relief is ~0.45; this exaggerates it so the peak reads from far away.
+  static const _relief = 0.75;
+
+  /// Island edge: the ground sinks to the base near the border of the circle.
+  static double _edge(double x, double z) {
     final r = math.sqrt(x * x + z * z);
-    final hills =
-        math.sin(x * 3.1 + 0.7) * math.cos(z * 2.7 - 0.4) * 0.5 +
-        math.sin(x * 5.9 - z * 4.3) * 0.2 +
-        math.cos(z * 7.3 + x * 1.9) * 0.1;
-    final falloff = (1 - r * r).clamp(0.0, 1.0);
-    return (hills + 0.35) * falloff;
+    final t = ((1 - r) / 0.25).clamp(0.0, 1.0);
+    return t * t * (3 - 2 * t);
   }
 
+  static double _height(PaniaTerrain terrain, double x, double z) => terrain.at(x, z) * _edge(x, z) * _relief;
+
+  /// A path winding up from the south-west rim to the summit at the middle.
   static Offset _trail(double u) {
-    final a = u * math.pi * 2.2 + 0.4;
-    final r = 0.15 + 0.6 * u;
-    return Offset(math.cos(a) * r, math.sin(a) * r * 0.9);
+    final a = 2.4 + (1 - u) * math.pi * 1.6;
+    final r = 0.9 * (1 - u) * (1 - u * 0.15);
+    return Offset(math.cos(a) * r, math.sin(a) * r);
   }
 
   static double _rand(int i, int salt) {
@@ -132,8 +156,11 @@ class _TerrainPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final terrain = this.terrain;
+    if (terrain == null) return;
+    final n = terrain.n;
     final cx = size.width / 2;
-    final cy = size.height * 0.42;
+    final cy = size.height * 0.46;
     final scale = size.shortestSide * 0.62;
     final assemble = Curves.easeOutCubic.transform((progress / 0.5).clamp(0.0, 1.0));
     final yaw = -0.9 + seconds * 0.45;
@@ -153,16 +180,20 @@ class _TerrainPainter extends CustomPainter {
       return (x: cx + rx * scale * p, y: cy - ry * scale * p, depth: ((rz2 + 1.5) / 3).clamp(0.0, 0.999));
     }
 
-    final lists = List.generate(_buckets, (_) => <double>[]);
+    // [depth bucket][elevation band] -> flat x,y pairs.
+    final lists = List.generate(_buckets * _bands, (_) => <double>[]);
+    // The base sits at height 0, so centre the whole shape vertically around its mid-height.
+    const lift = -_relief * 0.4;
 
-    for (var i = 0; i < _n; i++) {
-      for (var j = 0; j < _n; j++) {
-        final idx = i * _n + j;
-        final gx = (i / (_n - 1)) * 2 - 1;
-        final gz = (j / (_n - 1)) * 2 - 1;
-        if (gx * gx + gz * gz > 1.05) continue;
-        final wave = math.sin(seconds * 1.6 + gx * 4 + gz * 3) * 0.025;
-        final h = (_height(gx, gz) + wave) * 0.55;
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        final idx = i * n + j;
+        final gx = (j / (n - 1)) * 2 - 1;
+        final gz = (i / (n - 1)) * 2 - 1;
+        if (gx * gx + gz * gz > 1.0) continue;
+        final e = terrain.cell(i, j);
+        final wave = math.sin(seconds * 1.6 + gx * 4 + gz * 3) * 0.012 * assemble;
+        final h = _height(terrain, gx, gz) + wave + lift;
 
         final sx = (_rand(idx, 1) - 0.5) * 5;
         final sy = (_rand(idx, 2) - 0.5) * 3;
@@ -174,21 +205,30 @@ class _TerrainPainter extends CustomPainter {
         );
         if (p == null) continue;
         final b = (p.depth * _buckets).floor().clamp(0, _buckets - 1);
-        lists[b]
+        final band = (e * _edge(gx, gz) * _bands * 1.15).floor().clamp(0, _bands - 1);
+        lists[b * _bands + band]
           ..add(p.x)
           ..add(p.y);
       }
     }
 
     for (var b = _buckets - 1; b >= 0; b--) {
-      final pts = lists[b];
-      if (pts.isEmpty) continue;
       final near = 1 - b / (_buckets - 1);
-      final paint = Paint()
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = 1.2 + near * 2.2
-        ..color = color.withValues(alpha: (0.25 + near * 0.6) * assemble.clamp(0.2, 1.0));
-      canvas.drawRawPoints(ui.PointMode.points, Float32List.fromList(pts), paint);
+      for (var band = 0; band < _bands; band++) {
+        final pts = lists[b * _bands + band];
+        if (pts.isEmpty) continue;
+        // Higher ground is drawn brighter and a little bigger.
+        final high = band / (_bands - 1);
+        final paint = Paint()
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = 1.1 + near * 2.0 + high * 0.8
+          ..color = Color.lerp(
+            color,
+            accent,
+            high * 0.55,
+          )!.withValues(alpha: ((0.2 + near * 0.5 + high * 0.3) * assemble.clamp(0.2, 1.0)).clamp(0.0, 1.0));
+        canvas.drawRawPoints(ui.PointMode.points, Float32List.fromList(pts), paint);
+      }
     }
 
     final trailAppear = ((progress - 0.35) / 0.3).clamp(0.0, 1.0);
@@ -198,7 +238,7 @@ class _TerrainPainter extends CustomPainter {
         final u = i / (_trailCount - 1);
         if (u > trailAppear) break;
         final t2 = _trail(u);
-        final h = _height(t2.dx, t2.dy) * 0.55 + 0.04;
+        final h = _height(terrain, t2.dx, t2.dy) + lift + 0.03;
         final p = project(t2.dx, h, t2.dy);
         if (p == null) continue;
         var d = head - u;
@@ -214,5 +254,6 @@ class _TerrainPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_TerrainPainter old) => old.seconds != seconds || old.color != color || old.accent != accent;
+  bool shouldRepaint(_TerrainPainter old) =>
+      old.seconds != seconds || old.color != color || old.accent != accent || old.terrain != terrain;
 }
