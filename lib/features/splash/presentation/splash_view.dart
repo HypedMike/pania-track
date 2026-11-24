@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -13,24 +14,51 @@ import 'pania_terrain.dart';
 class SplashView extends StatefulWidget {
   const SplashView({super.key, this.replay = false});
 
-  /// When true (opened from settings) the screen pops back instead of going to Home, and a tap closes it.
+  /// When true (opened from settings) the screen stays open after the animation, letting the user
+  /// rotate and zoom the 3D shape, and shows a close button instead of going to Home.
   final bool replay;
 
   @override
   State<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashViewState extends State<SplashView> with SingleTickerProviderStateMixin {
+class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   static const _total = Duration(milliseconds: 3600);
   late final AnimationController _controller = AnimationController(vsync: this, duration: _total);
 
+  /// Keeps the scene alive (slow rotation, trail glow) after the intro in replay mode.
+  final ValueNotifier<double> _idleSeconds = ValueNotifier(0);
+  Ticker? _idleTicker;
+
   PaniaTerrain? _terrain;
+
+  // User camera controls (replay mode only).
+  double _yawOffset = 0;
+  double _tiltOffset = 0;
+  double _zoom = 1;
+  double _startZoom = 1;
 
   @override
   void initState() {
     super.initState();
     _start();
   }
+
+  void _onScaleStart(ScaleStartDetails d) => _startZoom = _zoom;
+
+  void _onScaleUpdate(ScaleUpdateDetails d) {
+    setState(() {
+      _yawOffset += d.focalPointDelta.dx * 0.01;
+      _tiltOffset = (_tiltOffset + d.focalPointDelta.dy * 0.01).clamp(-1.0, 0.55);
+      _zoom = (_startZoom * d.scale).clamp(0.5, 3.5);
+    });
+  }
+
+  void _resetView() => setState(() {
+    _yawOffset = 0;
+    _tiltOffset = 0;
+    _zoom = 1;
+  });
 
   Future<void> _start() async {
     try {
@@ -42,7 +70,8 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
     if (_terrain != null) await _controller.forward();
     if (!mounted) return;
     if (widget.replay) {
-      _close();
+      // Stay on screen: keep the scene animating so the user can explore it.
+      _idleTicker = createTicker((e) => _idleSeconds.value = e.inMicroseconds / 1e6)..start();
     } else {
       context.go(Routes.home);
     }
@@ -58,6 +87,8 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    _idleTicker?.dispose();
+    _idleSeconds.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -69,12 +100,15 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
       backgroundColor: scheme.surface,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.replay ? _close : null,
+        onScaleStart: widget.replay ? _onScaleStart : null,
+        onScaleUpdate: widget.replay ? _onScaleUpdate : null,
+        onDoubleTap: widget.replay ? _resetView : null,
         child: AnimatedBuilder(
-          animation: _controller,
+          animation: Listenable.merge([_controller, _idleSeconds]),
           builder: (context, _) {
             final t = _controller.value;
-            final fade = t > 0.88 ? 1 - (t - 0.88) / 0.12 : 1.0;
+            final fade = !widget.replay && t > 0.88 ? 1 - (t - 0.88) / 0.12 : 1.0;
+            final seconds = t * _total.inMilliseconds / 1000 + _idleSeconds.value;
             return Opacity(
               opacity: fade.clamp(0.0, 1.0),
               child: Stack(
@@ -83,12 +117,22 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                   CustomPaint(
                     painter: _TerrainPainter(
                       terrain: _terrain,
-                      seconds: t * _total.inMilliseconds / 1000,
+                      seconds: seconds,
                       progress: t,
                       color: scheme.primary,
                       accent: scheme.tertiary,
+                      yawOffset: _yawOffset,
+                      tiltOffset: _tiltOffset,
+                      zoom: _zoom,
                     ),
                   ),
+                  if (widget.replay)
+                    SafeArea(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: IconButton(icon: const Icon(Icons.close), onPressed: _close),
+                      ),
+                    ),
                   Align(
                     alignment: const Alignment(0, 0.72),
                     child: Opacity(
@@ -117,6 +161,9 @@ class _TerrainPainter extends CustomPainter {
     required this.progress,
     required this.color,
     required this.accent,
+    this.yawOffset = 0,
+    this.tiltOffset = 0,
+    this.zoom = 1,
   });
 
   final PaniaTerrain? terrain;
@@ -124,6 +171,9 @@ class _TerrainPainter extends CustomPainter {
   final double progress;
   final Color color;
   final Color accent;
+  final double yawOffset;
+  final double tiltOffset;
+  final double zoom;
 
   static const _trailCount = 90;
   static const _buckets = 5;
@@ -161,10 +211,10 @@ class _TerrainPainter extends CustomPainter {
     final n = terrain.n;
     final cx = size.width / 2;
     final cy = size.height * 0.46;
-    final scale = size.shortestSide * 0.62;
+    final scale = size.shortestSide * 0.62 * zoom;
     final assemble = Curves.easeOutCubic.transform((progress / 0.5).clamp(0.0, 1.0));
-    final yaw = -0.9 + seconds * 0.45;
-    const tilt = 1.0;
+    final yaw = -0.9 + seconds * 0.45 + yawOffset;
+    final tilt = 1.0 + tiltOffset;
     final cosY = math.cos(yaw), sinY = math.sin(yaw);
     final cosT = math.cos(tilt), sinT = math.sin(tilt);
     const camera = 3.2;
@@ -255,5 +305,11 @@ class _TerrainPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TerrainPainter old) =>
-      old.seconds != seconds || old.color != color || old.accent != accent || old.terrain != terrain;
+      old.seconds != seconds ||
+      old.color != color ||
+      old.accent != accent ||
+      old.terrain != terrain ||
+      old.yawOffset != yawOffset ||
+      old.tiltOffset != tiltOffset ||
+      old.zoom != zoom;
 }
