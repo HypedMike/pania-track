@@ -36,8 +36,11 @@ void main() {
         child: const PaniaApp(),
       ),
     );
-    // The splash plays first, then hands over to Home.
+    // The splash loads its terrain asset (real I/O), plays, then hands over to Home.
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 4000));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
 
     // Home: empty list, the three actions.
