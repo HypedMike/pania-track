@@ -1,0 +1,30 @@
+[package]
+name = "rust_lib_pania"
+version = "0.1.0"
+description = "Pania's core: track analysis, GPX and simplification, Nostr identity and sharing, update download. Used by the Flutter app through flutter_rust_bridge."
+edition = "2024"
+publish = false
+
+[lib]
+# `cdylib` is loaded by Android, `staticlib` by iOS; `rlib` lets `cargo test` link the crate.
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.13.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+quick-xml = "0.38"
+nostr-sdk = "0.45"
+nostr = { version = "0.45.7", default-features = false, features = ["std", "os-rng", "nip44"] }
+# Blocking HTTP client; rustls with bundled roots (no Android JNI trust-store setup needed).
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
