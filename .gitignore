@@ -60,3 +60,12 @@ android/local.properties
 android/keystore.properties
 *.jks
 *.keystore
+
+# Tauri frontend build output
+/dist/
+
+# Tauri generated Android project and plugin build output
+/src-tauri/gen/
+/src-tauri/plugins/*/android/.tauri/
+/src-tauri/plugins/*/android/build/
+/src-tauri/plugins/*/android/.gradle/

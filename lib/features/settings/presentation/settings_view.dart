@@ -218,6 +218,27 @@ class SettingsView extends ConsumerWidget {
           ),
           InkWell(
             borderRadius: BorderRadius.circular(16),
+            onTap: () => context.goTo(Routes.intro),
+            child: Panel(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(t('settings.intro'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        Text(t('settings.introHint'), style: TextStyle(fontSize: 14, color: c.muted)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: c.muted),
+                ],
+              ),
+            ),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
             onTap: () => context.goTo(Routes.nostrSettings),
             child: Panel(
               padding: const EdgeInsets.all(16),

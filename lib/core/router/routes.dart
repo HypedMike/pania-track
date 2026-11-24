@@ -1,5 +1,7 @@
 /// The app's routes. Paths with parameters have a builder next to them.
 abstract final class Routes {
+  static const splash = '/splash';
+  static const intro = '/settings/intro';
   static const home = '/';
   static const record = '/record';
   static const saveRecording = '/record/save';

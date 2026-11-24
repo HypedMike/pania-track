@@ -14,6 +14,7 @@ import '../../features/settings/presentation/settings_view.dart';
 import '../../features/sharing/presentation/explore_view.dart';
 import '../../features/sharing/presentation/nostr_settings_view.dart';
 import '../../features/sharing/presentation/shared_trail_view.dart';
+import '../../features/splash/presentation/splash_view.dart';
 import '../../features/stats/presentation/stats_view.dart';
 import '../../features/tiles/presentation/saved_tiles_view.dart';
 import '../../features/tour/presentation/tour_review_view.dart';
@@ -30,8 +31,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: path, builder: (context, state) => build(state));
 
   return GoRouter(
-    initialLocation: Routes.home,
+    initialLocation: Routes.splash,
     routes: [
+      route(Routes.splash, (_) => const SplashView()),
+      route(Routes.intro, (_) => const SplashView(replay: true)),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainShell(shell: shell),
         branches: [
