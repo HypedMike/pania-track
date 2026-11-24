@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Landing page for GitHub Pages, built separately from the Tauri app.
+// Landing page for GitHub Pages, built separately from the Flutter app.
 export default defineConfig({
   root: "site",
   envDir: "..",

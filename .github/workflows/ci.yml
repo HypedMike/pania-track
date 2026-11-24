@@ -10,7 +10,74 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  frontend:
+  # The Rust core: unit tests of the analysis, tracks, Nostr and updater code.
+  rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo test --locked
+
+  # The Flutter app: static analysis and tests, including one that calls the real Rust core
+  # through the bridge (needs the library built for this machine).
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libsqlite3-dev
+      - run: cargo build --manifest-path rust/Cargo.toml
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  # The generated bridge code in lib/core/rust and rust/src/frb_generated.rs must match the Rust API.
+  bindings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+      - run: flutter pub get
+      - run: flutter_rust_bridge_codegen generate
+      - name: Fail if the generated code is out of date
+        run: git diff --exit-code
+
+  # Unit tests of the Android service's pure logic, on a plain JVM (no Android SDK needed).
+  kotlin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test
+        working-directory: packages/pania_native/android/jvm-tests
+        run: gradle test --no-daemon
+
+  site:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,51 +89,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-      - run: pnpm build
+      - run: pnpm build:site
         env:
           VITE_LATEST_RELEASE_URL: ${{ vars.VITE_LATEST_RELEASE_URL }}
-
-  # Unit tests of the Android plugin's pure logic, on a plain JVM (no Android SDK needed).
-  kotlin:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Test
-        working-directory: src-tauri/plugins/trail-recorder/android/jvm-tests
-        run: gradle test --no-daemon
-
-  # Builds the Rust backend (desktop target) and runs its unit tests. The Android-only parts
-  # (the Kotlin plugins) are compiled by the release workflow, not here.
-  backend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src-tauri
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Tauri system libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
-            librsvg2-dev libxdo-dev libssl-dev build-essential pkg-config
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      # tauri::generate_context! embeds the frontend build and fails if the folder is missing.
-      # A placeholder is enough to compile; the frontend job checks the real build.
-      - name: Create placeholder frontend build
-        working-directory: .
-        run: mkdir -p dist && echo '<!doctype html>' > dist/index.html
-      - name: Build
-        run: cargo build --locked
-      - name: Test
-        # The app crate plus the plugin crates whose Rust code has its own unit tests.
-        run: cargo test --locked -p pania -p tauri-plugin-app-installer
