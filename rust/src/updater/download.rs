@@ -61,7 +61,6 @@ pub fn download(url: &str, target: &Path, policy: &Policy, mut on_progress: impl
         .max_redirects(0)
         .http_status_as_error(false)
         .timeout_connect(Some(Duration::from_secs(15)))
-        .timeout_recv_body(Some(Duration::from_secs(30)))
         .user_agent("pania-updater")
         .build()
         .into();
