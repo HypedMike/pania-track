@@ -15,6 +15,7 @@ import '../../features/sharing/presentation/explore_view.dart';
 import '../../features/sharing/presentation/nostr_settings_view.dart';
 import '../../features/sharing/presentation/shared_trail_view.dart';
 import '../../features/stats/presentation/stats_view.dart';
+import '../../features/tiles/presentation/saved_tiles_view.dart';
 import '../../features/tour/presentation/tour_review_view.dart';
 import '../../features/tour/presentation/tour_view.dart';
 import '../../features/trail/presentation/import_trail_view.dart';
@@ -57,6 +58,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       route(Routes.profileImport, (_) => const ImportProfileView()),
       route(Routes.settings, (_) => const SettingsView()),
       route(Routes.nostrSettings, (_) => const NostrSettingsView()),
+      route(Routes.savedTiles, (_) => const SavedTilesView()),
       route(Routes.insights, (_) => const InsightsView()),
       route(Routes.exploreTrailPattern, (s) => SharedTrailView(eventId: s.pathParameters['eventId']!)),
       route(Routes.trailDetailPattern, (s) => TrailDetailView(trailId: s.pathParameters['id']!)),

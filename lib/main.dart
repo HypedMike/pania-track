@@ -10,6 +10,7 @@ import 'app.dart';
 import 'core/rust/api/core.dart';
 import 'core/rust/frb_generated.dart';
 import 'core/settings/settings.dart';
+import 'core/tiles/tile_store.dart';
 
 /// Starts the Rust core: where it may keep files, and how it reaches the Android Keystore for the
 /// Nostr secret key. Without a keystore (desktop development) secrets fall back to a plain file.
@@ -48,5 +49,6 @@ Future<void> main() async {
   await initializeDateFormatting();
   final prefs = await SharedPreferences.getInstance();
   await _startCore();
+  await TileStore.init();
   runApp(ProviderScope(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)], child: const PaniaApp()));
 }

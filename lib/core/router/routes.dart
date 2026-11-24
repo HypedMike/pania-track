@@ -11,6 +11,7 @@ abstract final class Routes {
   static const profileImport = '/profile/import';
   static const settings = '/settings';
   static const nostrSettings = '/settings/nostr';
+  static const savedTiles = '/settings/tiles';
   static const explore = '/explore';
   static const stats = '/stats';
   static const insights = '/insights';

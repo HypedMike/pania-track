@@ -197,6 +197,27 @@ class SettingsView extends ConsumerWidget {
           ]),
           InkWell(
             borderRadius: BorderRadius.circular(16),
+            onTap: () => context.goTo(Routes.savedTiles),
+            child: Panel(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(t('settings.tiles'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        Text(t('settings.tilesHint'), style: TextStyle(fontSize: 14, color: c.muted)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: c.muted),
+                ],
+              ),
+            ),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
             onTap: () => context.goTo(Routes.nostrSettings),
             child: Panel(
               padding: const EdgeInsets.all(16),
