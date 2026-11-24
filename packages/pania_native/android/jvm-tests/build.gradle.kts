@@ -16,7 +16,7 @@ val plugin = "../src"
 sourceSets {
     main {
         kotlin.srcDir("$plugin/main/kotlin")
-        kotlin.exclude("LiveNotification.kt", "LiveWidgetProvider.kt", "RecorderService.kt", "PaniaNativePlugin.kt", "SecretStore.kt", "AppInstaller.kt", "PointBuffer.kt")
+        kotlin.exclude("**/LiveNotification.kt", "**/LiveWidgetProvider.kt", "**/RecorderService.kt", "**/PaniaNativePlugin.kt", "**/SecretStore.kt", "**/AppInstaller.kt", "**/PointBuffer.kt")
     }
     test { kotlin.srcDir("$plugin/test/kotlin") }
 }
