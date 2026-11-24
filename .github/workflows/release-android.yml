@@ -1,12 +1,12 @@
 name: Release Android
 
-# Every push/merge to main bumps the minor version (latest vX.Y.Z tag -> vX.(Y+1).0),
+# Every push/merge to main-flutter bumps the minor version (latest vX.Y.Z tag -> vX.(Y+1).0),
 # builds and signs the APK, then publishes a GitHub Release (which creates the tag).
 # Pushing a tag like v1.0.0 by hand still works and uses that exact version (use it for major bumps).
 # Manual runs only build and upload the APK as a workflow artifact.
 on:
   push:
-    branches: [main]
+    branches: [main-flutter]
     tags: ["v*.*.*"]
   workflow_dispatch:
 
