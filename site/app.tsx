@@ -3,7 +3,7 @@ import {
   fetchLatestRelease,
   LATEST_RELEASE_URL,
   type LatestRelease,
-} from "../src/shared/update/latest_release";
+} from "./latest_release";
 
 const REPO = "https://github.com/HypedMike/pania-track";
 
@@ -30,7 +30,7 @@ const FEATURES = [
   },
   {
     title: "Open source",
-    text: "Built with Tauri, React and Rust. Source and releases are on GitHub.",
+    text: "Built with Flutter and Rust. Source and releases are on GitHub.",
   },
 ];
 

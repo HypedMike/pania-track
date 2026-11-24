@@ -1,12 +1,12 @@
 name: Release Android
 
-# Every push/merge to main bumps the minor version (latest vX.Y.Z tag -> vX.(Y+1).0),
+# Every push/merge to main-flutter bumps the minor version (latest vX.Y.Z tag -> vX.(Y+1).0),
 # builds and signs the APK, then publishes a GitHub Release (which creates the tag).
 # Pushing a tag like v1.0.0 by hand still works and uses that exact version (use it for major bumps).
 # Manual runs only build and upload the APK as a workflow artifact.
 on:
   push:
-    branches: [main]
+    branches: [main-flutter]
     tags: ["v*.*.*"]
   workflow_dispatch:
 
@@ -34,7 +34,7 @@ jobs:
             VERSION="${GITHUB_REF_NAME#v}"
           else
             LATEST="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -n1)"
-            LATEST="${LATEST:-$(node -p "require('./package.json').version")}"
+            LATEST="${LATEST:-$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)}"
             IFS=. read -r MAJOR MINOR _ <<< "$LATEST"
             VERSION="$MAJOR.$((MINOR + 1)).0"
           fi
@@ -47,37 +47,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
       - name: Install Android SDK pieces
         run: |
           SDKM="$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -n1)"
           yes | "$SDKM" --licenses >/dev/null || true
-          "$SDKM" "cmdline-tools;latest"
-          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "$SDKM" "platforms;android-37.0" "build-tools;36.0.0" "ndk;28.2.13676358"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      # The Rust core is built for each phone architecture by cargokit while Gradle runs.
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: rust
 
-      - name: Set version from tag
+      # versionCode packs the version so it always grows with semver: major*1_000_000 + minor*1_000 + patch.
+      - name: Work out the version
         id: version
-        run: node scripts/set-version.mjs "${{ needs.version.outputs.version }}" | tee -a "$GITHUB_OUTPUT"
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          if [ "$MINOR" -gt 999 ] || [ "$PATCH" -gt 999 ]; then echo "minor and patch must be <= 999"; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$((MAJOR * 1000000 + MINOR * 1000 + PATCH))" >> "$GITHUB_OUTPUT"
 
-      - run: pnpm install --frozen-lockfile
+      - run: flutter pub get
 
       - name: Restore signing keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -88,12 +88,16 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          VITE_LATEST_RELEASE_URL: ${{ vars.VITE_LATEST_RELEASE_URL }}
-        run: pnpm tauri android build --apk --target aarch64 --target armv7
+        run: |
+          flutter build apk --release \
+            --target-platform android-arm64,android-arm \
+            --build-name "${{ steps.version.outputs.version }}" \
+            --build-number "${{ steps.version.outputs.code }}" \
+            --dart-define=LATEST_RELEASE_URL="${{ vars.VITE_LATEST_RELEASE_URL }}"
 
       - name: Verify signature and version
         run: |
-          APK="$(find src-tauri/gen/android/app/build/outputs/apk -name '*release*.apk' | head -n1)"
+          APK="$(find build/app/outputs -name '*release*.apk' | head -n1)"
           echo "APK=$APK" >> "$GITHUB_ENV"
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)"
           "$BT/apksigner" verify --print-certs "$APK"
